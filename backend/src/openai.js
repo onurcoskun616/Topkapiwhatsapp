@@ -7,10 +7,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
 
-const SYSTEM_PROMPT = fs.readFileSync(
-  path.join(__dirname, "../prompts/system-prompt.md"),
-  "utf-8"
-);
+let SYSTEM_PROMPT = "";
+try {
+  SYSTEM_PROMPT = fs.readFileSync(path.join(__dirname, "../prompts/system-prompt.md"), "utf-8");
+} catch {
+  SYSTEM_PROMPT = "Sen Topkapı Mesleki ve Teknik Anadolu Lisesi için kayıt danışmanısın. Velilere Türkçe, kısa ve yardımsever cevaplar ver.";
+}
 
 // Görüşmeyi mesaj dizisine çevir
 function toTranscript(messages) {
