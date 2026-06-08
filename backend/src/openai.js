@@ -4,7 +4,11 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+let _openai = null;
+function getClient() {
+  if (!_openai) _openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || "placeholder" });
+  return _openai;
+}
 const MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
 
 let SYSTEM_PROMPT = "";
@@ -24,7 +28,7 @@ function toTranscript(messages) {
 // 1) ANALİZ — görüşmeden JSON çıkar (department, grade, stage, score, summary, next)
 export async function analyzeConversation(messages) {
   const transcript = toTranscript(messages);
-  const completion = await openai.chat.completions.create({
+  const completion = await getClient().chat.completions.create({
     model: MODEL,
     temperature: 0.2,
     response_format: { type: "json_object" },
@@ -57,7 +61,7 @@ export async function generateReply(messages) {
     role: m.direction === "in" ? "user" : "assistant",
     content: m.body,
   }));
-  const completion = await openai.chat.completions.create({
+  const completion = await getClient().chat.completions.create({
     model: MODEL,
     temperature: 0.5,
     messages: [{ role: "system", content: SYSTEM_PROMPT }, ...history],
