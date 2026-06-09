@@ -1,5 +1,6 @@
 
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
+import { api } from "./api.js";
 import ReactDOM from "react-dom/client";
 
 const PATHS = {
@@ -223,14 +224,67 @@ async function llmReply(convo) {
   return await LLM.call([{ role:"system", content: LLM.systemPrompt }, ...history]);
 }
 
+// ===================== VERİ NORMALIZASYONU =====================
+function normalizeLead(lead, messages = []) {
+  return {
+    id: lead.id,
+    name: lead.name || lead.wa_id || "Bilinmiyor",
+    phone: lead.phone || lead.wa_id || "",
+    campus: lead.campus || "",
+    source: lead.source || "",
+    operator: lead.operator_id || "",
+    stage: lead.stage || "yeni",
+    score: lead.ai_score || 0,
+    msgs: messages.map(m => ({
+      from: m.direction,
+      text: m.body || "",
+      time: new Date(m.created_at),
+      byAI: m.by_ai,
+    })),
+    unread: 0,
+    respMin: 5,
+    department: lead.department || "",
+    grade: lead.grade || "",
+    appointment: null,
+    aiEnabled: lead.ai_enabled !== false,
+    aiMode: lead.ai_mode || "draft",
+    aiDraft: lead.ai_draft || "",
+    aiFilled: !!(lead.department || lead.grade),
+    aiEvaluated: lead.ai_evaluated || false,
+    llmSummary: lead.ai_summary || "",
+    llmNext: lead.ai_next || "",
+    startedAt: new Date(lead.started_at || lead.created_at),
+    registeredAt: lead.registered_at ? new Date(lead.registered_at) : null,
+    last_message_at: lead.last_message_at,
+  };
+}
+
 // ===================== APP =====================
 function App() {
   const [tab, setTab] = useState("inbox");
-  const [convos, setConvos] = useState(buildConvos);
+  const [convos, setConvos] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState(null);
   const [showBell, setShowBell] = useState(false);
   const isMobile = useIsMobile();
   const pending = pendingConfirmations(convos);
+
+  const loadLeads = useCallback(async () => {
+    try {
+      const leads = await api.listLeads();
+      setConvos(leads.map(l => normalizeLead(l)));
+      setLoading(false);
+    } catch (e) {
+      console.error("Lead yükleme hatası:", e);
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadLeads();
+    const interval = setInterval(loadLeads, 15000); // 15 sn'de bir yenile
+    return () => clearInterval(interval);
+  }, [loadLeads]);
 
   function update(id, patch) {
     setConvos(p => p.map(c => c.id === id ? { ...c, ...(typeof patch==="function"?patch(c):patch) } : c));
@@ -242,7 +296,7 @@ function App() {
         <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
           <span style={S.brandMark}>T</span>
           <div><div style={{ fontWeight: 800, fontSize: 14, color: "#fff" }}>Topkapı · WhatsApp Merkezi</div>
-          <div style={{ fontSize: 10.5, color: "#fbbf24" }}>● DEMO — Meslek Lisesi Kayıt</div></div>
+          <div style={{ fontSize: 10.5, color: "#fbbf24" }}>● CANLI — Meslek Lisesi Kayıt</div></div>
         </div>
         <div style={{ display: "flex", gap: 7, alignItems:"center" }}>
           {/* Bildirim zili */}
@@ -269,9 +323,11 @@ function App() {
           <button onClick={() => setTab("reports")} style={tab==="reports"?S.tabA:S.tab}><I n="bars" size={15}/> <span className="hide-sm">Raporlar</span></button>
         </div>
       </header>
-      {tab==="inbox"
-        ? <Inboxer convos={convos} update={update} setConvos={setConvos} activeId={activeId} setActiveId={setActiveId} isMobile={isMobile}/>
-        : <Reports convos={convos}/>}
+      {loading
+        ? <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", color:"#64748b", fontSize:14 }}>Yükleniyor…</div>
+        : tab==="inbox"
+          ? <Inboxer convos={convos} update={update} setConvos={setConvos} activeId={activeId} setActiveId={setActiveId} isMobile={isMobile}/>
+          : <Reports convos={convos}/>}
     </div>
   );
 }
@@ -285,11 +341,21 @@ function Inboxer({ convos, update, setConvos, activeId, setActiveId, isMobile })
   const [q, setQ] = useState("");
   const active = convos.find((c) => c.id === activeId);
   const list = convos.filter((c) => !q || c.name.toLowerCase().includes(q.toLowerCase()) || c.phone.includes(q));
-  function send(text) {
+
+  async function send(text) {
     if (!text.trim()) return;
     update(activeId, c => ({ msgs:[...c.msgs,{from:"out",text,time:new Date()}], unread:0 }));
+    try { await api.send(activeId, text); } catch(e) { console.error("Gönderim hatası:", e); }
   }
-  function open(id) { setActiveId(id); update(id, { unread:0 }); }
+
+  async function open(id) {
+    setActiveId(id);
+    update(id, { unread:0 });
+    try {
+      const { lead, messages } = await api.getLead(id);
+      update(id, normalizeLead(lead, messages));
+    } catch(e) { console.error("Mesaj yükleme hatası:", e); }
+  }
   const showList = !isMobile || !active, showChat = !isMobile || active;
   return (
     <div style={S.inboxWrap}>
@@ -336,37 +402,44 @@ function ChatView({ convo, onSend, update, onBack, isMobile }) {
   useEffect(() => { if (endRef.current) endRef.current.scrollIntoView({ behavior:"smooth" }); }, [convo.msgs.length]);
   const ai = aiAnalysis(convo);
 
-  function setEval(v) {
-    update(convo.id, { stage: v, aiEvaluated: false }); // operatör değiştirince AI işareti kalkar
+  async function setEval(v) {
+    update(convo.id, { stage: v, aiEvaluated: false });
+    try { await api.updateLead(convo.id, { stage: v, ai_evaluated: false }); } catch(e) { console.error(e); }
   }
 
-  // LLM: görüşmeyi analiz et ve alanları doldur
   async function runAnalyze() {
     setBusy(true);
-    const r = await llmAnalyze(convo);
+    try {
+      const r = await api.analyze(convo.id);
+      update(convo.id, {
+        department: r.department || convo.department,
+        grade: r.grade || convo.grade,
+        stage: r.stage || convo.stage,
+        score: typeof r.score==="number" ? r.score : convo.score,
+        aiEvaluated: true, aiFilled: !!(r.department || r.grade),
+        llmSummary: r.summary, llmNext: r.next,
+      });
+    } catch(e) { console.error("Analiz hatası:", e); }
     setBusy(false);
-    if (r) update(convo.id, {
-      department: r.department || convo.department,
-      grade: r.grade || convo.grade,
-      stage: r.stage || convo.stage,
-      score: typeof r.score==="number" ? r.score : convo.score,
-      aiEvaluated: true, aiFilled: !!(r.department || r.grade),
-      llmSummary: r.summary, llmNext: r.next,
-    });
   }
-  // LLM: veliye yanıt üret (mode'a göre auto gönder / draft beklet)
+
   async function runReply() {
     setBusy(true);
-    const reply = await llmReply(convo);
+    try {
+      const r = await api.reply(convo.id);
+      if (r.sent) {
+        update(convo.id, c => ({ msgs:[...c.msgs,{from:"out",text:r.reply,time:new Date(),byAI:true}] }));
+      } else {
+        update(convo.id, { aiDraft: r.reply });
+      }
+    } catch(e) { console.error("Yanıt hatası:", e); }
     setBusy(false);
-    if (convo.aiMode === "auto") {
-      update(convo.id, c => ({ msgs:[...c.msgs,{from:"out",text:reply,time:new Date(),byAI:true}] }));
-    } else {
-      update(convo.id, { aiDraft: reply }); // operatör onayına sun
-    }
   }
-  function sendDraft() {
-    update(convo.id, c => ({ msgs:[...c.msgs,{from:"out",text:c.aiDraft,time:new Date(),byAI:true}], aiDraft:"" }));
+
+  async function sendDraft() {
+    const draft = convo.aiDraft;
+    update(convo.id, c => ({ msgs:[...c.msgs,{from:"out",text:draft,time:new Date(),byAI:true}], aiDraft:"" }));
+    try { await api.send(convo.id, draft, true); } catch(e) { console.error(e); }
   }
 
   return (
