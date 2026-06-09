@@ -294,7 +294,7 @@ function App() {
     <div style={S.app}>
       <header style={S.topbar}>
         <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
-          <span style={S.brandMark}>T</span>
+          <img src="https://i.ibb.co/N2vYQjDn/442418253-960808149388725-8401339798021113572-n.jpg" style={{ width:40, height:40, borderRadius:"50%", objectFit:"cover" }} alt="logo" />
           <div><div style={{ fontWeight: 800, fontSize: 14, color: "#fff" }}>Topkapı · WhatsApp Merkezi</div>
           <div style={{ fontSize: 10.5, color: "#fbbf24" }}>● CANLI</div></div>
         </div>
