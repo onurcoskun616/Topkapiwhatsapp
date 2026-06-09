@@ -370,10 +370,10 @@ function Inboxer({ convos, update, setConvos, activeId, setActiveId, isMobile })
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ display:"flex", justifyContent:"space-between", gap:6 }}>
                     <b style={{ fontSize:13.5, color:"#fff", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{c.name}</b>
-                    <span style={{ fontSize:10, color:"#64748b", flexShrink:0 }}>{last.time.toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})}</span>
+                    <span style={{ fontSize:10, color:"#64748b", flexShrink:0 }}>{last ? last.time.toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"}) : ""}</span>
                   </div>
                   <div style={{ display:"flex", justifyContent:"space-between", gap:6, marginTop:2 }}>
-                    <span style={{ fontSize:11.5, color:"#94a3b8", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{last.text}</span>
+                    <span style={{ fontSize:11.5, color:"#94a3b8", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{last ? last.text : "Henüz mesaj yok"}</span>
                     {c.unread>0 && <span style={S.unread}>{c.unread}</span>}
                   </div>
                   <div style={{ display:"flex", gap:5, marginTop:6, flexWrap:"wrap", alignItems:"center" }}>
