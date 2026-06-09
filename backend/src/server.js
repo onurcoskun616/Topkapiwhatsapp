@@ -8,7 +8,10 @@ import { analyzeConversation, generateReply } from "./openai.js";
 
 const app = express();
 app.use(express.json());
-app.use(cors({ origin: process.env.PANEL_ORIGIN || "*" }));
+app.use(cors({
+  origin: (origin, cb) => cb(null, true),
+  credentials: true,
+}));
 
 // ---------- Sağlık kontrolü ----------
 app.get("/health", (_req, res) => res.json({ ok: true, ts: Date.now() }));
