@@ -489,7 +489,6 @@ function ChatView({ convo, onSend, update, onBack, isMobile }) {
             <button onClick={runAnalyze} disabled={busy} style={S.llmBtn}><I n="sparkles" size={13}/> {busy?"Analiz ediliyor…":"Görüşmeyi Analiz Et"}</button>
             <button onClick={runReply} disabled={busy} style={S.llmBtn}><I n="bot" size={13}/> {convo.aiMode==="auto"?"AI Yanıtı Gönder":"AI Taslağı Üret"}</button>
           </div>
-          {!LLM.enabled && <div style={{ fontSize:10.5, color:"#64748b", marginTop:8 }}>⚙️ Demo modu — gerçek OpenAI bağlantısı için proxy adresi ve sistem promptu eklenecek.</div>}
         </div>
       )}
 
