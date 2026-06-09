@@ -296,7 +296,7 @@ function App() {
         <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
           <span style={S.brandMark}>T</span>
           <div><div style={{ fontWeight: 800, fontSize: 14, color: "#fff" }}>Topkapı · WhatsApp Merkezi</div>
-          <div style={{ fontSize: 10.5, color: "#fbbf24" }}>● CANLI — Meslek Lisesi Kayıt</div></div>
+          <div style={{ fontSize: 10.5, color: "#fbbf24" }}>● CANLI</div></div>
         </div>
         <div style={{ display: "flex", gap: 7, alignItems:"center" }}>
           {/* Bildirim zili */}
