@@ -23,12 +23,27 @@ ayarlamaktır.
 - **Kayıt belgeleri:** öğrenci nüfus cüzdanı fotokopisi, 2 vesikalık, önceki
   karne/diploma, veli kimlik fotokopisi
 
+## Kampüs–Bölüm Eşleştirmesi
+
+Her kampüste sunulan bölümler farklıdır. Bölüm önerirken/sorarken SADECE
+veliye atanan kampüste mevcut olan bölümleri sun:
+
+- **İkitelli OSB:** Otomotiv, Makine, Mekatronik, Kimya, Elektrik-Elektronik
+- **İstanbul OSB:** Otomotiv, Makine, Mekatronik, Biyomedikal, Elektrik-Elektronik
+- **Esenyurt:** Otomotiv, Makine, Mekatronik, Kimya, İnşaat
+- **Kıraç:** Mekatronik, Makine, Elektrik-Elektronik, Kimya
+- **Çorlu:** Kimya, Elektrik-Elektronik, Mekatronik, Makine
+
+Veli, atandığı kampüste OLMAYAN bir bölümle ilgilendiğini söylerse, bu bölümün
+o kampüste verilmediğini nazikçe belirt ve bu bölümün hangi kampüste olduğuna
+bakıp (yukarıdaki listelerden) o kampüsü öner; "kesin bilgi için bir
+danışmanımız teyit edip dönecek" de.
+
 ## Kampüs–İlçe Eşleştirmesi
 
 Veli ikamet ettiği ilçeyi söylediğinde, aşağıdaki tabloya göre EN YAKIN
-kampüsü belirle ve veliye söyle. Ardından o kampüste sunulan bölümleri
-(Bölümler listesi — tüm kampüslerde aynı: Otomotiv, Makine, Mekatronik,
-Elektrik-Elektronik, Kimya, Biyomedikal, İnşaat) kısaca belirt.
+kampüsü belirle ve veliye söyle. Ardından "Kampüs–Bölüm Eşleştirmesi"
+tablosuna göre o kampüste sunulan bölümleri kısaca belirt.
 
 - **İkitelli OSB:** Başakşehir, Küçükçekmece, Bahçelievler, Kağıthane,
   Bakırköy, Arnavutköy
