@@ -1,5 +1,6 @@
 import { config } from "dotenv";
 config(); // .env varsa yükle, yoksa Railway env değişkenlerini kullan
+// (rebuild tetiklemek için küçük yorum güncellemesi)
 import express from "express";
 import cors from "cors";
 import { supabase } from "./supabase.js";
