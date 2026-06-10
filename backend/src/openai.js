@@ -43,6 +43,7 @@ export async function analyzeConversation(messages) {
           `parent_name (velinin adı soyadı, görüşmede açıkça verildiyse, yoksa ""),\n` +
           `student_name (öğrencinin adı soyadı, görüşmede açıkça verildiyse, yoksa ""),\n` +
           `district (velinin oturduğu ilçe, açıkça verildiyse, yoksa ""),\n` +
+          `campus (Kampüs-İlçe Eşleştirmesi tablosuna göre ilçeden belirlenen kampüs: İkitelli OSB|İstanbul OSB|Esenyurt|Kıraç|Çorlu veya ""),\n` +
           `appointment_date (randevu için kesin gün/saat netleştiyse ISO 8601 formatında "YYYY-MM-DDTHH:mm:00", yoksa ""),\n` +
           `stage (yeni|olumlu|olumsuz|randevu|kayit),\n` +
           `score (0-100 kayıt eğilimi),\n` +

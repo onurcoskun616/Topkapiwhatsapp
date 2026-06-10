@@ -22,6 +22,7 @@ async function applyAnalysis(lead, analysis) {
     parent_name: analysis.parent_name || lead.parent_name,
     student_name: analysis.student_name || lead.student_name,
     name: analysis.parent_name || lead.name,
+    campus: analysis.campus || lead.campus,
     stage: analysis.stage || lead.stage,
     ai_score: analysis.score ?? lead.ai_score,
     ai_summary: analysis.summary, ai_next: analysis.next,
