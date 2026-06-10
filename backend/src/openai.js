@@ -39,7 +39,7 @@ export async function analyzeConversation(messages) {
         content:
           `Aşağıdaki WhatsApp görüşmesini analiz et ve SADECE şu alanlarla JSON döndür:\n` +
           `department (Otomotiv|Makine|Mekatronik|Elektrik-Elektronik|Kimya|Biyomedikal|İnşaat veya ""),\n` +
-          `grade ("9. Sınıf".."12. Sınıf" veya "" — SADECE veli sınıfı kendisi NET olarak söylediyse doldur, tahmin etme),\n` +
+          `grade ("9. Sınıf".."12. Sınıf" veya "" — SADECE veli YENİ DÖNEMDE öğrencinin gideceği sınıfı NET ve teyitli olarak söylediyse doldur; "8'e/9'a gidiyor" gibi mevcut sınıf bilgisi teyit edilmeden yazma, tahmin etme),\n` +
           `parent_name (velinin adı soyadı, görüşmede açıkça verildiyse, yoksa ""),\n` +
           `student_name (öğrencinin adı soyadı, görüşmede açıkça verildiyse, yoksa ""),\n` +
           `district (velinin oturduğu ilçe, açıkça verildiyse, yoksa ""),\n` +
