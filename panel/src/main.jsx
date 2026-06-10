@@ -272,7 +272,14 @@ function App() {
   const loadLeads = useCallback(async () => {
     try {
       const leads = await api.listLeads();
-      setConvos(leads.map(l => normalizeLead(l)));
+      setConvos(prev => {
+        const prevById = new Map(prev.map(c => [c.id, c]));
+        return leads.map(l => {
+          const fresh = normalizeLead(l);
+          const old = prevById.get(l.id);
+          return old ? { ...fresh, msgs: old.msgs } : fresh;
+        });
+      });
       setLoading(false);
     } catch (e) {
       console.error("Lead yükleme hatası:", e);

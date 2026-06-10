@@ -29,7 +29,7 @@ create table if not exists leads (
   ai_next         text,
   ai_evaluated    boolean default false,           -- aşamayı AI mı belirledi
   ai_enabled      boolean default true,            -- bu görüşmede LLM aktif mi
-  ai_mode         text default 'draft',            -- 'auto' (kendi gönderir) | 'draft' (öneri)
+  ai_mode         text default 'auto',             -- 'auto' (kendi gönderir) | 'draft' (öneri)
   ai_draft        text,                            -- bekleyen AI taslağı
   operator_id     uuid references operators(id),
   started_at      timestamptz default now(),       -- sohbetin başladığı an
