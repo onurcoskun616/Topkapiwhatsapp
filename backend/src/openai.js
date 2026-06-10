@@ -39,11 +39,16 @@ export async function analyzeConversation(messages) {
         content:
           `Aşağıdaki WhatsApp görüşmesini analiz et ve SADECE şu alanlarla JSON döndür:\n` +
           `department (Otomotiv|Makine|Mekatronik|Elektrik-Elektronik|Kimya|Biyomedikal|İnşaat veya ""),\n` +
-          `grade ("9. Sınıf".."12. Sınıf" veya ""),\n` +
+          `grade ("9. Sınıf".."12. Sınıf" veya "" — SADECE veli sınıfı kendisi NET olarak söylediyse doldur, tahmin etme),\n` +
+          `parent_name (velinin adı soyadı, görüşmede açıkça verildiyse, yoksa ""),\n` +
+          `student_name (öğrencinin adı soyadı, görüşmede açıkça verildiyse, yoksa ""),\n` +
+          `district (velinin oturduğu ilçe, açıkça verildiyse, yoksa ""),\n` +
+          `appointment_date (randevu için kesin gün/saat netleştiyse ISO 8601 formatında "YYYY-MM-DDTHH:mm:00", yoksa ""),\n` +
           `stage (yeni|olumlu|olumsuz|randevu|kayit),\n` +
           `score (0-100 kayıt eğilimi),\n` +
           `summary (kısa Türkçe özet),\n` +
           `next (operatöre sonraki adım önerisi).\n\n` +
+          `Bugünün tarihi: ${new Date().toISOString().slice(0, 10)}\n\n` +
           `Görüşme:\n${transcript}`,
       },
     ],

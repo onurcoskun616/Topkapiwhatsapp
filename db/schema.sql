@@ -18,6 +18,8 @@ create table if not exists leads (
   id              uuid primary key default gen_random_uuid(),
   wa_id           text unique not null,            -- WhatsApp telefon kimliği (ör. 905xxxxxxxxx)
   name            text,                            -- veli/öğrenci adı
+  parent_name     text,                            -- veli adı soyadı (LLM/operatör doldurur)
+  student_name    text,                            -- öğrenci adı soyadı (LLM/operatör doldurur)
   phone           text,
   campus          text,                            -- İkitelli OSB | İstanbul OSB | Esenyurt | Kıraç | Çorlu
   source          text,                            -- mecra: WhatsApp Reklam | Web Sitesi | Instagram | Tavsiye

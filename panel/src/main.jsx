@@ -245,7 +245,9 @@ function normalizeLead(lead, messages = []) {
     respMin: 5,
     department: lead.department || "",
     grade: lead.grade || "",
-    appointment: null,
+    parentName: lead.parent_name || "",
+    studentName: lead.student_name || "",
+    appointment: lead.appointment ? { id: lead.appointment.id, date: new Date(lead.appointment.scheduled_at), confirmed: lead.appointment.confirmed } : null,
     aiEnabled: lead.ai_enabled !== false,
     aiMode: lead.ai_mode || "draft",
     aiDraft: lead.ai_draft || "",
@@ -514,18 +516,35 @@ function ChatView({ convo, onSend, update, onBack, isMobile }) {
       {/* Detay + etiket + bölüm/sınıf + randevu paneli */}
       {panel==="info" && (
         <div style={S.infoPanel}>
+          {/* Veli & Öğrenci adı soyadı */}
+          <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:12 }}>
+            <div style={{ flex:1, minWidth:150 }}>
+              <label style={S.fieldLbl}>Veli Adı Soyadı {convo.parentName && <span style={S.aiTag}>AI</span>}</label>
+              <input value={convo.parentName} placeholder="Belirtilmedi"
+                onChange={(e)=>update(convo.id,{parentName:e.target.value})}
+                onBlur={(e)=>{ api.updateLead(convo.id,{parent_name:e.target.value}).catch(console.error); }}
+                style={S.select}/>
+            </div>
+            <div style={{ flex:1, minWidth:150 }}>
+              <label style={S.fieldLbl}>Öğrenci Adı Soyadı {convo.studentName && <span style={S.aiTag}>AI</span>}</label>
+              <input value={convo.studentName} placeholder="Belirtilmedi"
+                onChange={(e)=>update(convo.id,{studentName:e.target.value})}
+                onBlur={(e)=>{ api.updateLead(convo.id,{student_name:e.target.value}).catch(console.error); }}
+                style={S.select}/>
+            </div>
+          </div>
           {/* Bölüm & Sınıf */}
           <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:12 }}>
             <div style={{ flex:1, minWidth:150 }}>
               <label style={S.fieldLbl}>Bölüm {convo.aiFilled && convo.department && <span style={S.aiTag}>AI</span>}</label>
-              <select value={convo.department} onChange={(e)=>update(convo.id,{department:e.target.value})} style={S.select}>
+              <select value={convo.department} onChange={(e)=>{ update(convo.id,{department:e.target.value}); api.updateLead(convo.id,{department:e.target.value}).catch(console.error); }} style={S.select}>
                 <option value="">Seçiniz…</option>
                 {DEPARTMENTS.map(d=><option key={d} value={d}>{d}</option>)}
               </select>
             </div>
             <div style={{ flex:1, minWidth:120 }}>
               <label style={S.fieldLbl}>Sınıf {convo.aiFilled && convo.grade && <span style={S.aiTag}>AI</span>}</label>
-              <select value={convo.grade} onChange={(e)=>update(convo.id,{grade:e.target.value})} style={S.select}>
+              <select value={convo.grade} onChange={(e)=>{ update(convo.id,{grade:e.target.value}); api.updateLead(convo.id,{grade:e.target.value}).catch(console.error); }} style={S.select}>
                 <option value="">Seçiniz…</option>
                 {GRADES.map(g=><option key={g} value={g}>{g}</option>)}
               </select>
@@ -548,14 +567,29 @@ function ChatView({ convo, onSend, update, onBack, isMobile }) {
             <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap" }}>
               <input type="datetime-local" style={S.dateInput}
                 value={convo.appointment ? toLocalInput(convo.appointment.date) : ""}
-                onChange={(e)=>update(convo.id,{ appointment: e.target.value ? { date:new Date(e.target.value), confirmed:false } : null })}/>
+                onChange={async (e)=>{
+                  const v = e.target.value;
+                  if (!v) {
+                    update(convo.id, { appointment: null });
+                    try { await api.setAppointment(convo.id, null); } catch(err) { console.error(err); }
+                    return;
+                  }
+                  const iso = new Date(v).toISOString();
+                  try {
+                    const r = await api.setAppointment(convo.id, iso);
+                    update(convo.id, { appointment: r.appointment ? { id:r.appointment.id, date:new Date(r.appointment.scheduled_at), confirmed:r.appointment.confirmed } : null });
+                  } catch(err) { console.error(err); }
+                }}/>
               {convo.appointment && (
                 <span style={{ ...S.dot, background: convo.appointment.confirmed?"#10b9811f":"#f59e0b1f", color: convo.appointment.confirmed?"#10b981":"#f59e0b" }}>
                   {convo.appointment.confirmed ? "✓ Teyit edildi" : "Teyit bekliyor"}
                 </span>
               )}
               {convo.appointment && !convo.appointment.confirmed &&
-                <button style={S.confirmBtn} onClick={()=>update(convo.id, c=>({ appointment:{...c.appointment, confirmed:true} }))}>Teyit Et</button>}
+                <button style={S.confirmBtn} onClick={async ()=>{
+                  update(convo.id, c=>({ appointment:{...c.appointment, confirmed:true} }));
+                  try { await api.confirmAppointment(convo.appointment.id); } catch(err) { console.error(err); }
+                }}>Teyit Et</button>}
             </div>
           </div>
         </div>

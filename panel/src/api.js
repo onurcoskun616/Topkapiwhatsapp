@@ -23,6 +23,7 @@ export const api = {
   send: (id, text, byAI = false) => j(`/api/leads/${id}/send`, { method: "POST", body: { text, byAI } }),
   analyze: (id) => j(`/api/leads/${id}/analyze`, { method: "POST" }),
   reply: (id) => j(`/api/leads/${id}/reply`, { method: "POST" }),
+  setAppointment: (id, scheduled_at) => j(`/api/leads/${id}/appointment`, { method: "PUT", body: { scheduled_at } }),
   pendingAppointments: () => j(`/api/appointments/pending`),
   confirmAppointment: (id) => j(`/api/appointments/${id}/confirm`, { method: "PATCH" }),
   templates: () => j(`/api/templates`),

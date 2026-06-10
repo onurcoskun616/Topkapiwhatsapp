@@ -14,6 +14,35 @@ app.use(cors({
   credentials: true,
 }));
 
+// Analiz sonucunu lead'e ve gerekirse randevu tablosuna işle
+async function applyAnalysis(lead, analysis) {
+  await supabase.from("leads").update({
+    department: analysis.department || lead.department,
+    grade: analysis.grade || lead.grade,
+    parent_name: analysis.parent_name || lead.parent_name,
+    student_name: analysis.student_name || lead.student_name,
+    name: analysis.parent_name || lead.name,
+    stage: analysis.stage || lead.stage,
+    ai_score: analysis.score ?? lead.ai_score,
+    ai_summary: analysis.summary, ai_next: analysis.next,
+    ai_evaluated: true,
+  }).eq("id", lead.id);
+
+  if (analysis.appointment_date) {
+    const when = new Date(analysis.appointment_date);
+    if (!isNaN(when.getTime())) {
+      const { data: existing } = await supabase
+        .from("appointments").select("id").eq("lead_id", lead.id)
+        .eq("confirmed", false).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (existing) {
+        await supabase.from("appointments").update({ scheduled_at: when.toISOString() }).eq("id", existing.id);
+      } else {
+        await supabase.from("appointments").insert({ lead_id: lead.id, scheduled_at: when.toISOString() });
+      }
+    }
+  }
+}
+
 // ---------- Sağlık kontrolü ----------
 app.get("/health", (_req, res) => res.json({ ok: true, ts: Date.now() }));
 
@@ -74,16 +103,7 @@ app.post("/webhook", async (req, res) => {
 
       // analiz
       const analysis = await analyzeConversation(msgs);
-      if (analysis) {
-        await supabase.from("leads").update({
-          department: analysis.department || lead.department,
-          grade: analysis.grade || lead.grade,
-          stage: analysis.stage || lead.stage,
-          ai_score: analysis.score ?? lead.ai_score,
-          ai_summary: analysis.summary, ai_next: analysis.next,
-          ai_evaluated: true,
-        }).eq("id", lead.id);
-      }
+      if (analysis) await applyAnalysis(lead, analysis);
 
       // yanıt
       const reply = await generateReply(msgs);
@@ -113,7 +133,15 @@ app.get("/api/leads", async (req, res) => {
   if (req.query.stage) q = q.eq("stage", req.query.stage);
   const { data, error } = await q;
   if (error) return res.status(500).json({ error: error.message });
-  res.json(data);
+
+  const ids = (data || []).map((l) => l.id);
+  let appts = [];
+  if (ids.length) {
+    const { data: a } = await supabase.from("appointments").select("*").in("lead_id", ids).order("scheduled_at", { ascending: false });
+    appts = a || [];
+  }
+  const result = (data || []).map((l) => ({ ...l, appointment: appts.find((a) => a.lead_id === l.id) || null }));
+  res.json(result);
 });
 
 // Tek görüşme + mesajlar
@@ -121,12 +149,32 @@ app.get("/api/leads/:id", async (req, res) => {
   const { data: lead } = await supabase.from("leads").select("*").eq("id", req.params.id).single();
   const { data: messages } = await supabase
     .from("messages").select("*").eq("lead_id", req.params.id).order("created_at");
-  res.json({ lead, messages });
+  const { data: appointment } = await supabase
+    .from("appointments").select("*").eq("lead_id", req.params.id).order("scheduled_at", { ascending: false }).limit(1).maybeSingle();
+  res.json({ lead: { ...lead, appointment: appointment || null }, messages });
+});
+
+// Görüşmenin randevusunu oluştur/güncelle/sil
+app.put("/api/leads/:id/appointment", async (req, res) => {
+  const { scheduled_at } = req.body;
+  if (!scheduled_at) {
+    await supabase.from("appointments").delete().eq("lead_id", req.params.id);
+    return res.json({ ok: true, appointment: null });
+  }
+  const { data: existing } = await supabase
+    .from("appointments").select("id").eq("lead_id", req.params.id).order("scheduled_at", { ascending: false }).limit(1).maybeSingle();
+  let result;
+  if (existing) {
+    ({ data: result } = await supabase.from("appointments").update({ scheduled_at, confirmed: false }).eq("id", existing.id).select().single());
+  } else {
+    ({ data: result } = await supabase.from("appointments").insert({ lead_id: req.params.id, scheduled_at }).select().single());
+  }
+  res.json({ ok: true, appointment: result });
 });
 
 // Güncelle (aşama, bölüm, sınıf, ai_mode, ai_enabled)
 app.patch("/api/leads/:id", async (req, res) => {
-  const allowed = ["stage", "department", "grade", "ai_mode", "ai_enabled", "ai_evaluated", "campus", "source", "operator_id", "name"];
+  const allowed = ["stage", "department", "grade", "ai_mode", "ai_enabled", "ai_evaluated", "campus", "source", "operator_id", "name", "parent_name", "student_name"];
   const patch = {};
   for (const k of allowed) if (k in req.body) patch[k] = req.body[k];
   const { data, error } = await supabase.from("leads").update(patch).eq("id", req.params.id).select().single();
@@ -152,14 +200,11 @@ app.post("/api/leads/:id/send", async (req, res) => {
 
 // LLM ile analiz et
 app.post("/api/leads/:id/analyze", async (req, res) => {
+  const { data: lead } = await supabase.from("leads").select("*").eq("id", req.params.id).single();
   const { data: msgs } = await supabase.from("messages").select("*").eq("lead_id", req.params.id).order("created_at");
   const analysis = await analyzeConversation(msgs);
   if (!analysis) return res.status(500).json({ error: "Analiz başarısız" });
-  await supabase.from("leads").update({
-    department: analysis.department, grade: analysis.grade, stage: analysis.stage,
-    ai_score: analysis.score, ai_summary: analysis.summary, ai_next: analysis.next,
-    ai_evaluated: true,
-  }).eq("id", req.params.id);
+  await applyAnalysis(lead, analysis);
   res.json(analysis);
 });
 

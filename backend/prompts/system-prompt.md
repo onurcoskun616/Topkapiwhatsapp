@@ -71,7 +71,13 @@ ilgisini canlı tutmak ve uygunsa kampüs ziyareti/randevu ayarlamaktır.
 
 Görüşmeyi değerlendirip şu alanları döndür:
 - **department:** Tespit edilen bölüm veya ""
-- **grade:** Tespit edilen sınıf veya ""
+- **grade:** Tespit edilen sınıf veya "" — SADECE veli sınıfı kendisi NET olarak
+  belirttiyse doldur ("9. Sınıf"–"12. Sınıf"); tahmin etme, boş bırak.
+- **parent_name:** Velinin adı soyadı, açıkça verildiyse, yoksa ""
+- **student_name:** Öğrencinin adı soyadı, açıkça verildiyse, yoksa ""
+- **district:** Velinin oturduğu ilçe, açıkça verildiyse, yoksa ""
+- **appointment_date:** Randevu için kesin gün/saat netleştiyse ISO 8601
+  formatında ("YYYY-MM-DDTHH:mm:00"), yoksa ""
 - **stage:** Görüşmenin durumu:
   - `yeni`: henüz tek mesaj, diyalog başlamamış
   - `olumlu`: ilgili, soru soruyor, bilgi alıyor
