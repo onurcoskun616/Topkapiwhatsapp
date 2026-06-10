@@ -533,6 +533,14 @@ function ChatView({ convo, onSend, update, onBack, isMobile }) {
                 style={S.select}/>
             </div>
           </div>
+          {/* Kampüs */}
+          <div style={{ marginBottom:12 }}>
+            <label style={S.fieldLbl}>Kampüs {convo.aiFilled && convo.campus && <span style={S.aiTag}>AI</span>}</label>
+            <select value={convo.campus} onChange={(e)=>{ update(convo.id,{campus:e.target.value}); api.updateLead(convo.id,{campus:e.target.value}).catch(console.error); }} style={S.select}>
+              <option value="">Seçiniz…</option>
+              {CAMPUSES.map(c=><option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
           {/* Bölüm & Sınıf */}
           <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:12 }}>
             <div style={{ flex:1, minWidth:150 }}>
