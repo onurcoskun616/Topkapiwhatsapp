@@ -39,6 +39,13 @@ app.post("/webhook", async (req, res) => {
   if (!msg) return;
 
   try {
+    // Meta aynı mesajı birden fazla kez gönderebilir (retry) — daha önce işlendiyse atla
+    if (msg.waMessageId) {
+      const { data: existing } = await supabase
+        .from("messages").select("id").eq("wa_message_id", msg.waMessageId).maybeSingle();
+      if (existing) return;
+    }
+
     // 1) Lead var mı, yoksa oluştur
     let { data: lead } = await supabase
       .from("leads").select("*").eq("wa_id", msg.waId).single();
