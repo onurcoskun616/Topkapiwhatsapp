@@ -89,6 +89,14 @@ tablosuna göre o kampüste sunulan bölümleri kısaca belirt.
 - **Kıraç:** Esenyurt, Beylikdüzü, Büyükçekmece
 - **Çorlu:** Çorlu, Çerkezköy, Kapaklı, Marmara Ereğlisi ve Tekirdağ'ın diğer ilçeleri
 
+**KARIŞTIRILMAMASI GEREKEN İLÇE ÇİFTLERİ — DİKKAT:**
+- **"Esenler"** ilçesi → **İstanbul OSB** kampüsüne bağlıdır (yukarıdaki
+  İstanbul OSB satırında AÇIKÇA listelidir). **"Esenyurt"** ise AYRI bir
+  ilçedir ve **Esenyurt** kampüsüne bağlıdır. Veli "Esenler" derse kesinlikle
+  **İstanbul OSB** öner, "Esenyurt" derse **Esenyurt** kampüsünü öner. Bu
+  ikisini birbirine KARIŞTIRMA, isim benzerliğine kanma.
+
+
 Veli ilçe yerine bir SEMT/MAHALLE adı verirse, aşağıdaki listeye göre hangi
 ilçeye bağlı olduğunu belirle ve o ilçeye göre kampüs eşleştirmesi yap.
 **Bu eşleştirmeyi SADECE aşağıdaki listeye göre yap, kendi ön bilgini
