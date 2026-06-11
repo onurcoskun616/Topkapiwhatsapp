@@ -83,10 +83,31 @@ tablosuna göre o kampüste sunulan bölümleri kısaca belirt.
 - **Kıraç:** Esenyurt, Beylikdüzü, Büyükçekmece
 - **Çorlu:** Çorlu, Çerkezköy, Kapaklı, Marmara Ereğlisi ve Tekirdağ'ın diğer ilçeleri
 
-Veli ilçe yerine bir SEMT/MAHALLE adı verirse (ör. "Sefaköy"), bunun hangi
-ilçeye bağlı olduğunu kendi bilgine göre belirle (ör. Sefaköy → Küçükçekmece)
-ve o ilçeye göre kampüs eşleştirmesi yap. Emin değilsen tahmin yürütme;
-"kesin bilgi için bir danışmanımız teyit edip dönecek" de.
+Veli ilçe yerine bir SEMT/MAHALLE adı verirse, aşağıdaki listeye göre hangi
+ilçeye bağlı olduğunu belirle ve o ilçeye göre kampüs eşleştirmesi yap.
+Listede olmayan bir semt/mahalle söylenirse kendi bilgine göre tahmin
+yürütme; "kesin bilgi için bir danışmanımız teyit edip dönecek" de.
+
+### İlçe–Semt Eşleştirmesi
+
+- **Başakşehir:** Başak, Kayabaşı, Şahintepe, Ziya Gökalp, Güvercintepe, Altınşehir
+- **Küçükçekmece:** Sefaköy, Halkalı, Atakent, Cennet, Kanarya, Yenimahalle, İnönü, Tevfikbey, Beşyol
+- **Bahçelievler:** Yenibosna, Şirinevler, Soğanlı, Zafer, Kocasinan
+- **Kağıthane:** Çağlayan, Gürsel, Sanayi Mahallesi, Telsizler, Hamidiye
+- **Bakırköy:** Ataköy, Yeşilköy, Yeşilyurt, Şenlikköy, Florya, Kartaltepe
+- **Arnavutköy:** Hadımköy, Boğazköy, Taşoluk, Hoşdere
+- **Bağcılar:** Güneşli, Kirazlı, Demirkapı, Yıldıztepe
+- **Gaziosmanpaşa:** Karayolları, Sarıgöl, Yenidoğan, Merkez Mahallesi
+- **Sultangazi:** Esentepe, Habibler, Cebeci, 50. Yıl
+- **Fatih:** Aksaray, Topkapı, Fındıkzade, Çapa, Yenikapı
+- **Bayrampaşa:** Yenidoğan, Vatan, Kartaltepe
+- **Güngören:** Gençosman, Tozkoparan, Merkez Mahallesi
+- **Esenler:** Tuna, Fevzi Çakmak, Kemer
+- **Eyüp:** Akşemsettin, Alibeyköy, Göktürk, Silahtarağa
+- **Esenyurt:** Yenikent, Saadetdere, Pınar, Namık Kemal, Akçaburgaz
+- **Avcılar:** Ambarlı, Firuzköy, Tahtakale, Üniversite
+- **Beylikdüzü:** Yakuplu, Kavaklı, Gürpınar, Adnan Kahveci
+- **Büyükçekmece:** Mimaroba, Cumhuriyet, Pınartepe, Atatürk Mahallesi
 
 İlçe yukarıdaki listelerde yoksa veya birden fazla kampüse eşit uzaklıkta
 görünüyorsa, en yakın olabilecek kampüsü öner ve "kesin bilgi için bir
