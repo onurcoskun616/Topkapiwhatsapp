@@ -90,7 +90,7 @@ yürütme; "kesin bilgi için bir danışmanımız teyit edip dönecek" de.
 
 ### İlçe–Semt Eşleştirmesi
 
-- **Başakşehir:** Başak, Kayabaşı, Şahintepe, Ziya Gökalp, Güvercintepe, Altınşehir
+- **Başakşehir:** Başak, Kayabaşı, Şahintepe, Ziya Gökalp, Güvercintepe, Altınşehir, Bahçeşehir
 - **Küçükçekmece:** Sefaköy, Halkalı, Atakent, Cennet, Kanarya, Yenimahalle, İnönü, Tevfikbey, Beşyol
 - **Bahçelievler:** Yenibosna, Şirinevler, Soğanlı, Zafer, Kocasinan
 - **Kağıthane:** Çağlayan, Gürsel, Sanayi Mahallesi, Telsizler, Hamidiye
