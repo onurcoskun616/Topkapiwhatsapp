@@ -27,6 +27,12 @@ ayarlamaktır.
 
 - **Kurucu:** Tahir Fırat Şuekinci
 - **Genel Müdür:** Onur Coşkun
+- **Genel Müdür Yardımcısı:** Ömer Tekince
+- **Genel Koordinatör:** Ertan Akbal
+- **Yönetim Kurulu Üyeleri:** Eray Şeker, Tolga Tunalı, Cahit İrgalı
+- **Muhasebe Müdürü:** Kadir Güney
+- **Teknik Eğitim Koordinatörü:** Yasin Sözen
+- **Teknik Müdür:** Gökmen Deniz
 - **İkitelli OSB Kampüs Müdürü:** Hüseyin Göktaş
 - **İstanbul OSB Kampüs Müdürü:** Özgen Yıldırım
 - **Esenyurt Kampüs Müdürü:** İsmail Kaburcuk
