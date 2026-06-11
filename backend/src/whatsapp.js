@@ -50,15 +50,35 @@ export function parseIncoming(body) {
     const msg = value?.messages?.[0];
     if (!msg) return null;
     const contact = value.contacts?.[0];
+    const media = msg.image || msg.document || msg.video || null;
     return {
       waId: msg.from,                         // gönderenin telefonu
       name: contact?.profile?.name || null,
       waMessageId: msg.id,
-      type: msg.type,                          // text | image | document | ...
-      text: msg.text?.body || "",
+      type: msg.type,                          // text | image | document | video | ...
+      text: msg.text?.body || media?.caption || "",
+      mediaId: media?.id || null,
       timestamp: msg.timestamp,
     };
   } catch {
     return null;
   }
+}
+
+// Meta'daki bir medyanın geçici indirme URL'sini ve içerik tipini al
+export async function getMediaInfo(mediaId) {
+  const res = await fetch(`${API}/${mediaId}`, {
+    headers: { Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}` },
+  });
+  if (!res.ok) throw new Error(`Medya bilgisi alınamadı: ${res.status} ${await res.text()}`);
+  return res.json(); // { url, mime_type, ... }
+}
+
+// Meta medya URL'sinden dosyayı indir (auth gerektirir)
+export async function downloadMedia(url) {
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}` },
+  });
+  if (!res.ok) throw new Error(`Medya indirilemedi: ${res.status}`);
+  return res;
 }

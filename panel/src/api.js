@@ -36,6 +36,8 @@ export const api = {
     if (!from && !to && period) q.set("period", period);
     return `${API}/api/export/leads?${q.toString()}`;
   },
+  feedback: (id, original, edited) => j(`/api/leads/${id}/feedback`, { method: "POST", body: { original, edited } }),
+  mediaProxyUrl: (mediaId) => `${API}/api/media-proxy/${mediaId}`,
 };
 
 // Realtime için (Supabase): yeni mesaj/lead değişimini dinle.

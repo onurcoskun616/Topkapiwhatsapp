@@ -4,7 +4,7 @@ config(); // .env varsa yükle, yoksa Railway env değişkenlerini kullan
 import express from "express";
 import cors from "cors";
 import { supabase } from "./supabase.js";
-import { sendText, parseIncoming } from "./whatsapp.js";
+import { sendText, parseIncoming, getMediaInfo, downloadMedia } from "./whatsapp.js";
 import { analyzeConversation, generateReply, generateFollowUp } from "./openai.js";
 import { matchFaq } from "./faq.js";
 import ExcelJS from "exceljs";
@@ -94,7 +94,7 @@ app.post("/webhook", async (req, res) => {
     // 2) Mesajı kaydet
     await supabase.from("messages").insert({
       lead_id: lead.id, direction: "in", body: msg.text,
-      type: msg.type, wa_message_id: msg.waMessageId,
+      type: msg.type, media_url: msg.mediaId || null, wa_message_id: msg.waMessageId,
     });
     await supabase.from("leads")
       .update({ last_message_at: new Date().toISOString() })
@@ -154,7 +154,20 @@ app.get("/api/leads", async (req, res) => {
     const { data: a } = await supabase.from("appointments").select("*").in("lead_id", ids).order("scheduled_at", { ascending: false });
     appts = a || [];
   }
-  const result = (data || []).map((l) => ({ ...l, appointment: appts.find((a) => a.lead_id === l.id) || null }));
+  let lastDirByLead = {};
+  if (ids.length) {
+    const { data: msgs } = await supabase
+      .from("messages").select("lead_id, direction, created_at").in("lead_id", ids)
+      .order("created_at", { ascending: false });
+    for (const m of msgs || []) {
+      if (!(m.lead_id in lastDirByLead)) lastDirByLead[m.lead_id] = m.direction;
+    }
+  }
+  const result = (data || []).map((l) => ({
+    ...l,
+    appointment: appts.find((a) => a.lead_id === l.id) || null,
+    last_direction: lastDirByLead[l.id] || null,
+  }));
   res.json(result);
 });
 
@@ -207,6 +220,29 @@ app.post("/api/leads/:id/send", async (req, res) => {
     });
     if (byAI) await supabase.from("leads").update({ ai_draft: null }).eq("id", req.params.id);
     res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// AI taslağı düzenlenip gönderildiğinde geri bildirimi kaydet (prompt iyileştirme için)
+app.post("/api/leads/:id/feedback", async (req, res) => {
+  const { original, edited } = req.body;
+  const { error } = await supabase.from("ai_feedback").insert({
+    lead_id: req.params.id, original, edited,
+  });
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
+
+// WhatsApp medyasını panele aktar (Meta medya URL'leri auth + süreli olduğu için proxy gerekir)
+app.get("/api/media-proxy/:mediaId", async (req, res) => {
+  try {
+    const info = await getMediaInfo(req.params.mediaId);
+    const upstream = await downloadMedia(info.url);
+    res.setHeader("Content-Type", info.mime_type || "application/octet-stream");
+    const buf = Buffer.from(await upstream.arrayBuffer());
+    res.send(buf);
   } catch (e) {
     res.status(500).json({ error: e.message });
   }

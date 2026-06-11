@@ -241,6 +241,8 @@ function normalizeLead(lead, messages = []) {
       text: m.body || "",
       time: new Date(m.created_at),
       byAI: m.by_ai,
+      type: m.type || "text",
+      mediaId: m.media_url || null,
     })),
     unread: 0,
     respMin: 5,
@@ -253,6 +255,7 @@ function normalizeLead(lead, messages = []) {
     aiEnabled: lead.ai_enabled !== false,
     aiMode: lead.ai_mode || "draft",
     aiDraft: lead.ai_draft || "",
+    lastDirection: lead.last_direction || null,
     aiFilled: !!(lead.department || lead.grade),
     aiEvaluated: lead.ai_evaluated || false,
     llmSummary: lead.ai_summary || "",
@@ -272,6 +275,9 @@ function App() {
   const [showBell, setShowBell] = useState(false);
   const isMobile = useIsMobile();
   const pending = pendingConfirmations(convos);
+  const pendingDrafts = convos.filter(c => c.aiDraft);
+  const needsReply = convos.filter(c => !c.aiEnabled && c.lastDirection === "in" && c.stage !== "olumsuz" && c.stage !== "kayit");
+  const bellCount = pending.length + pendingDrafts.length + needsReply.length;
 
   const loadLeads = useCallback(async () => {
     try {
@@ -314,12 +320,12 @@ function App() {
           <div style={{ position:"relative" }}>
             <button onClick={()=>setShowBell(!showBell)} style={{ ...S.tab, position:"relative" }}>
               <I n="bell" size={16}/>
-              {pending.length>0 && <span style={S.bellBadge}>{pending.length}</span>}
+              {bellCount>0 && <span style={S.bellBadge}>{bellCount}</span>}
             </button>
             {showBell && (
               <div style={S.bellDrop}>
                 <div style={{ fontSize:12, fontWeight:700, color:"#fff", marginBottom:8 }}>Yarınki Randevular — Teyit Gerekli</div>
-                {pending.length===0 && <div style={{ fontSize:12, color:"#64748b" }}>Bekleyen teyit yok.</div>}
+                {pending.length===0 && <div style={{ fontSize:12, color:"#64748b", marginBottom:10 }}>Bekleyen teyit yok.</div>}
                 {pending.map(c=>(
                   <div key={c.id} style={S.bellItem}>
                     <div><b style={{ fontSize:12.5, color:"#fff" }}>{c.name}</b>
@@ -328,6 +334,24 @@ function App() {
                       try { await api.confirmAppointment(c.appointment.id); } catch(err) { console.error(err); }
                       update(c.id, cc=>({ appointment:{...cc.appointment, confirmed:true} }));
                     }}>Teyit Et</button>
+                  </div>
+                ))}
+
+                <div style={{ fontSize:12, fontWeight:700, color:"#fff", margin:"12px 0 8px" }}>Onay Bekleyen AI Taslakları</div>
+                {pendingDrafts.length===0 && <div style={{ fontSize:12, color:"#64748b", marginBottom:10 }}>Bekleyen taslak yok.</div>}
+                {pendingDrafts.map(c=>(
+                  <div key={c.id} style={S.bellItem} onClick={()=>{ setTab("inbox"); setActiveId(c.id); setShowBell(false); }}>
+                    <div style={{ cursor:"pointer" }}><b style={{ fontSize:12.5, color:"#fff" }}>{c.name}</b>
+                      <div style={{ fontSize:11, color:"#94a3b8", maxWidth:220, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{c.aiDraft}</div></div>
+                  </div>
+                ))}
+
+                <div style={{ fontSize:12, fontWeight:700, color:"#fff", margin:"12px 0 8px" }}>Yanıt Bekleyen Görüşmeler (AI kapalı)</div>
+                {needsReply.length===0 && <div style={{ fontSize:12, color:"#64748b" }}>Bekleyen yanıt yok.</div>}
+                {needsReply.map(c=>(
+                  <div key={c.id} style={S.bellItem} onClick={()=>{ setTab("inbox"); setActiveId(c.id); setShowBell(false); }}>
+                    <div style={{ cursor:"pointer" }}><b style={{ fontSize:12.5, color:"#fff" }}>{c.name}</b>
+                      <div style={{ fontSize:11, color:"#94a3b8" }}>{c.campus || "Kampüs belirtilmedi"}</div></div>
                   </div>
                 ))}
               </div>
@@ -353,8 +377,11 @@ function useIsMobile() {
 
 function Inboxer({ convos, update, setConvos, activeId, setActiveId, isMobile }) {
   const [q, setQ] = useState("");
+  const [stageFilter, setStageFilter] = useState("");
   const active = convos.find((c) => c.id === activeId);
-  const list = convos.filter((c) => !q || c.name.toLowerCase().includes(q.toLowerCase()) || c.phone.includes(q));
+  const list = convos.filter((c) =>
+    (!q || c.name.toLowerCase().includes(q.toLowerCase()) || c.phone.includes(q)) &&
+    (!stageFilter || c.stage === stageFilter));
 
   async function send(text) {
     if (!text.trim()) return;
@@ -377,6 +404,15 @@ function Inboxer({ convos, update, setConvos, activeId, setActiveId, isMobile })
         <div style={{ ...S.listCol, ...(isMobile?{width:"100%",borderRight:"none"}:{}) }}>
           <div style={S.searchBox}><I n="search" size={15} color="#64748b"/>
             <input placeholder="Veli ara…" value={q} onChange={(e)=>setQ(e.target.value)} style={S.searchInput}/></div>
+          <div style={{ display:"flex", gap:6, flexWrap:"wrap", padding:"0 12px 10px" }}>
+            <button onClick={()=>setStageFilter("")} style={!stageFilter?S.stageChipA:S.stageChip}>Tümü</button>
+            {Object.keys(STAGES).map(k=>(
+              <button key={k} onClick={()=>setStageFilter(k)}
+                style={stageFilter===k?{...S.stageChipA, background:`${STAGES[k].color}26`, color:STAGES[k].color, borderColor:STAGES[k].color}:S.stageChip}>
+                {STAGES[k].label}
+              </button>
+            ))}
+          </div>
           <div style={S.convList}>
             {list.map((c) => { const t = aiTemp(c.score); const last = c.msgs[c.msgs.length-1]; return (
               <div key={c.id} className="conv" style={{ ...S.convItem, ...(c.id===activeId?S.convActive:{}) }} onClick={()=>open(c.id)}>
@@ -408,10 +444,34 @@ function Inboxer({ convos, update, setConvos, activeId, setActiveId, isMobile })
   );
 }
 
+function MsgContent({ m }) {
+  if (m.type === "image" && m.mediaId) {
+    return <div>
+      <img src={api.mediaProxyUrl(m.mediaId)} alt="" style={{ maxWidth:240, borderRadius:8, display:"block" }}/>
+      {m.text && <div style={{ marginTop:6 }}>{m.text}</div>}
+    </div>;
+  }
+  if (m.type === "video" && m.mediaId) {
+    return <div>
+      <video src={api.mediaProxyUrl(m.mediaId)} controls style={{ maxWidth:240, borderRadius:8, display:"block" }}/>
+      {m.text && <div style={{ marginTop:6 }}>{m.text}</div>}
+    </div>;
+  }
+  if (m.type === "document" && m.mediaId) {
+    return <a href={api.mediaProxyUrl(m.mediaId)} target="_blank" rel="noreferrer"
+      style={{ display:"flex", alignItems:"center", gap:8, color:"inherit", textDecoration:"none" }}>
+      <I n="file" size={18}/> {m.text || "Belge"}
+    </a>;
+  }
+  return m.text;
+}
+
 function ChatView({ convo, onSend, update, onBack, isMobile }) {
   const [text, setText] = useState("");
   const [panel, setPanel] = useState(null); // templates | media | ai | info
   const [busy, setBusy] = useState(false);
+  const [draftText, setDraftText] = useState("");
+  useEffect(() => { setDraftText(convo.aiDraft || ""); }, [convo.aiDraft]);
   const endRef = useRef(null);
   useEffect(() => { if (endRef.current) endRef.current.scrollIntoView({ behavior:"smooth" }); }, [convo.msgs.length]);
   const ai = aiAnalysis(convo);
@@ -450,10 +510,15 @@ function ChatView({ convo, onSend, update, onBack, isMobile }) {
     setBusy(false);
   }
 
-  async function sendDraft() {
-    const draft = convo.aiDraft;
-    update(convo.id, c => ({ msgs:[...c.msgs,{from:"out",text:draft,time:new Date(),byAI:true}], aiDraft:"" }));
-    try { await api.send(convo.id, draft, true); } catch(e) { console.error(e); }
+  async function sendDraft(final) {
+    const original = convo.aiDraft;
+    update(convo.id, c => ({ msgs:[...c.msgs,{from:"out",text:final,time:new Date(),byAI:true}], aiDraft:"" }));
+    try {
+      await api.send(convo.id, final, true);
+      if (final.trim() !== original.trim()) {
+        await api.feedback(convo.id, original, final).catch(console.error);
+      }
+    } catch(e) { console.error(e); }
   }
 
   return (
@@ -509,10 +574,12 @@ function ChatView({ convo, onSend, update, onBack, isMobile }) {
       {/* Yarı-otomatik: bekleyen AI taslağı */}
       {convo.aiDraft && (
         <div style={S.draftBox}>
-          <div style={{ fontSize:11, fontWeight:700, color:gold, marginBottom:6, display:"flex", alignItems:"center", gap:5 }}><I n="bot" size={12}/> AI TASLAĞI — onayınızı bekliyor</div>
-          <div style={{ fontSize:13, color:"#e2e8f0", lineHeight:1.5, marginBottom:10 }}>{convo.aiDraft}</div>
+          <div style={{ fontSize:11, fontWeight:700, color:gold, marginBottom:6, display:"flex", alignItems:"center", gap:5 }}><I n="bot" size={12}/> AI TASLAĞI — düzenleyip onaylayabilirsiniz</div>
+          <textarea value={draftText} rows={3}
+            onChange={(e)=>setDraftText(e.target.value)}
+            style={{ ...S.select, resize:"vertical", marginBottom:10, fontFamily:"inherit", lineHeight:1.5 }}/>
           <div style={{ display:"flex", gap:8 }}>
-            <button onClick={sendDraft} style={S.draftSend}><I n="send" size={13}/> Onayla & Gönder</button>
+            <button onClick={()=>sendDraft(draftText)} style={S.draftSend}><I n="send" size={13}/> Onayla & Gönder</button>
             <button onClick={()=>update(convo.id,{aiDraft:""})} style={S.draftCancel}>İptal</button>
           </div>
         </div>
@@ -621,7 +688,8 @@ function ChatView({ convo, onSend, update, onBack, isMobile }) {
       <div style={S.msgArea}>
         {convo.msgs.map((m, i) => (
           <div key={i} style={{ display:"flex", justifyContent: m.from==="out"?"flex-end":"flex-start" }}>
-            <div style={{ ...S.bubble, ...(m.from==="out"?S.bubbleOut:S.bubbleIn) }}>{m.text}
+            <div style={{ ...S.bubble, ...(m.from==="out"?S.bubbleOut:S.bubbleIn) }}>
+              <MsgContent m={m}/>
               <span style={S.msgTime}>{m.time.toLocaleTimeString("tr-TR",{hour:"2-digit",minute:"2-digit"})}</span></div>
           </div>
         ))}
@@ -889,6 +957,8 @@ const S = {
   periodRow: { display:"flex", gap:8, marginBottom:18, flexWrap:"wrap" },
   per: { padding:"8px 16px", borderRadius:99, background:"#0f1729", border:"1px solid #1e293b", color:"#94a3b8", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"inherit" },
   perA: { padding:"8px 16px", borderRadius:99, background:gold, border:`1px solid ${gold}`, color:"#0a1020", fontSize:13, fontWeight:800, cursor:"pointer", fontFamily:"inherit" },
+  stageChip: { padding:"5px 12px", borderRadius:99, background:"#0f1729", border:"1px solid #1e293b", color:"#94a3b8", fontSize:11.5, fontWeight:700, cursor:"pointer", fontFamily:"inherit" },
+  stageChipA: { padding:"5px 12px", borderRadius:99, background:`${gold}26`, border:`1px solid ${gold}`, color:gold, fontSize:11.5, fontWeight:800, cursor:"pointer", fontFamily:"inherit" },
   kpiRow: { display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(155px,1fr))", gap:11, marginBottom:18 },
   kpi: { display:"flex", alignItems:"center", gap:11, background:"#0a1020", border:"1px solid #1e293b", borderRadius:13, padding:"13px 15px" },
   kpiIcon: { width:38, height:38, borderRadius:10, display:"grid", placeItems:"center", flexShrink:0 },

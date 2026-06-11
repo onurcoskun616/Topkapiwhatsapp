@@ -136,5 +136,14 @@ insert into templates(title, body) values
   ('Belgeler', 'Kayıt için: öğrenci nüfus cüzdanı fotokopisi, 2 vesikalık, önceki karne/diploma ve veli kimlik fotokopisi gerekiyor 📄')
 on conflict do nothing;
 
+-- AI taslağı düzenlenerek gönderildiğinde geri bildirim (prompt iyileştirme için)
+create table if not exists ai_feedback (
+  id          uuid primary key default gen_random_uuid(),
+  lead_id     uuid not null references leads(id) on delete cascade,
+  original    text not null,                    -- AI'ın ürettiği taslak
+  edited      text not null,                    -- operatörün gönderdiği son hali
+  created_at  timestamptz default now()
+);
+
 -- NOT: Üretimde Row Level Security (RLS) politikaları eklenmelidir.
 -- Başlangıçta backend service_role anahtarı kullandığı için RLS bypass edilir.
