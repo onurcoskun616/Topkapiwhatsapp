@@ -766,8 +766,8 @@ function Reports() {
   return (
     <div style={S.reportBody}>
       <div style={S.periodRow}>{periods.map((p)=>(<button key={p} onClick={()=>setPeriod(p)} style={p===period?S.perA:S.per}>{p}</button>))}</div>
-      <div style={{...S.periodRow, alignItems:"center", background:"#f8fafc", padding:10, borderRadius:10}}>
-        <span style={{fontSize:13, fontWeight:600, color:"#334155"}}>Excel Raporu:</span>
+      <div style={{...S.periodRow, alignItems:"center", background:"#0a1020", border:"1px solid #1e293b", padding:10, borderRadius:10}}>
+        <span style={{fontSize:13, fontWeight:600, color:"#e2e8f0"}}>Excel Raporu:</span>
         <input type="date" value={exportFrom} onChange={(e)=>setExportFrom(e.target.value)} style={S.dateInput}/>
         <span style={{fontSize:13, color:"#64748b"}}>–</span>
         <input type="date" value={exportTo} onChange={(e)=>setExportTo(e.target.value)} style={S.dateInput}/>
