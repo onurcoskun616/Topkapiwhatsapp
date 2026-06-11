@@ -30,6 +30,7 @@ const PATHS = {
   bell: '<path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/><path d="M21 19H3l1.5-2A8 8 0 0 0 6 12a6 6 0 0 1 12 0 8 8 0 0 0 1.5 5Z"/>',
   bot: '<rect width="18" height="10" x="3" y="11" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4M8 16h0M16 16h0"/>',
   power: '<path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.8 0"/>',
+  download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
 };
 function I({ n, size = 16, color }) {
   return <svg className="ic" viewBox="0 0 24 24" style={{ width: size, height: size, color }} dangerouslySetInnerHTML={{ __html: PATHS[n] || '' }} />;
@@ -657,6 +658,8 @@ function Reports() {
   const [period, setPeriod] = useState("Haftalık");
   const periods = ["Günlük","Haftalık","Aylık","Yıllık"];
   const [r, setR] = useState(null);
+  const [exportFrom, setExportFrom] = useState("");
+  const [exportTo, setExportTo] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -685,6 +688,19 @@ function Reports() {
   return (
     <div style={S.reportBody}>
       <div style={S.periodRow}>{periods.map((p)=>(<button key={p} onClick={()=>setPeriod(p)} style={p===period?S.perA:S.per}>{p}</button>))}</div>
+      <div style={{...S.periodRow, alignItems:"center", background:"#f8fafc", padding:10, borderRadius:10}}>
+        <span style={{fontSize:13, fontWeight:600, color:"#334155"}}>Excel Raporu:</span>
+        <input type="date" value={exportFrom} onChange={(e)=>setExportFrom(e.target.value)} style={S.dateInput}/>
+        <span style={{fontSize:13, color:"#64748b"}}>–</span>
+        <input type="date" value={exportTo} onChange={(e)=>setExportTo(e.target.value)} style={S.dateInput}/>
+        <a
+          href={api.exportLeadsUrl(exportFrom || exportTo ? { from: exportFrom, to: exportTo } : { period })}
+          style={{...S.perA, display:"inline-flex", alignItems:"center", gap:6, textDecoration:"none"}}
+        >
+          <I n="download" size={14}/> İndir ({exportFrom || exportTo ? "Tarih Aralığı" : period})
+        </a>
+        {(exportFrom || exportTo) && <button onClick={()=>{ setExportFrom(""); setExportTo(""); }} style={S.per}>Tarih Filtresini Temizle</button>}
+      </div>
       <div style={S.kpiRow}>
         <Kpi i="msg" l="Toplam Konuşma" v={funnel.total} c="#3b82f6"/>
         <Kpi i="calendar" l="Bugün Yeni" v={r.today} c="#06b6d4"/>

@@ -7,6 +7,7 @@ import { supabase } from "./supabase.js";
 import { sendText, parseIncoming } from "./whatsapp.js";
 import { analyzeConversation, generateReply, generateFollowUp } from "./openai.js";
 import { matchFaq } from "./faq.js";
+import ExcelJS from "exceljs";
 
 const app = express();
 app.use(express.json());
@@ -186,7 +187,7 @@ app.put("/api/leads/:id/appointment", async (req, res) => {
 
 // Güncelle (aşama, bölüm, sınıf, ai_mode, ai_enabled)
 app.patch("/api/leads/:id", async (req, res) => {
-  const allowed = ["stage", "department", "grade", "ai_mode", "ai_enabled", "ai_evaluated", "campus", "source", "operator_id", "name", "parent_name", "student_name"];
+  const allowed = ["stage", "department", "grade", "ai_mode", "ai_enabled", "ai_evaluated", "campus", "source", "operator_id", "name", "parent_name", "student_name", "district"];
   const patch = {};
   for (const k of allowed) if (k in req.body) patch[k] = req.body[k];
   const { data, error } = await supabase.from("leads").update(patch).eq("id", req.params.id).select().single();
@@ -349,6 +350,78 @@ app.get("/api/reports", async (req, res) => {
     today: last30[last30.length - 1].started,
     srcDist, depDist, stageDist, opPerf, last30, byDow, topRegDate,
   });
+});
+
+// Excel raporu: tüm görüşmeler (telefon, veli/öğrenci adı, ilçe, kampüs,
+// aşama, randevu tarihi, AI analiz, kayıt tahmini vb.)
+// Tarih aralığı ?from=YYYY-MM-DD&to=YYYY-MM-DD veya ?period=Günlük|Haftalık|Aylık|Yıllık
+app.get("/api/export/leads", async (req, res) => {
+  const { from, to, period } = req.query;
+  let since, until;
+  if (from || to) {
+    since = from ? new Date(from) : new Date(0);
+    until = to ? new Date(to) : new Date();
+    until.setHours(23, 59, 59, 999);
+  } else {
+    until = new Date();
+    since = new Date();
+    if (period === "Günlük") since.setHours(0, 0, 0, 0);
+    else if (period === "Aylık") since.setMonth(since.getMonth() - 1);
+    else if (period === "Yıllık") since.setFullYear(since.getFullYear() - 1);
+    else since.setDate(since.getDate() - 7); // Haftalık (varsayılan)
+  }
+
+  const { data: leads, error } = await supabase
+    .from("leads")
+    .select("*, appointments(scheduled_at)")
+    .gte("created_at", since.toISOString())
+    .lte("created_at", until.toISOString())
+    .order("created_at", { ascending: false });
+  if (error) return res.status(500).json({ error: error.message });
+
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet("Görüşmeler");
+  ws.columns = [
+    { header: "Telefon", key: "phone", width: 16 },
+    { header: "Veli Adı Soyadı", key: "parent_name", width: 24 },
+    { header: "Öğrenci Adı Soyadı", key: "student_name", width: 24 },
+    { header: "İlçe", key: "district", width: 16 },
+    { header: "Kampüs", key: "campus", width: 16 },
+    { header: "Bölüm", key: "department", width: 18 },
+    { header: "Sınıf", key: "grade", width: 10 },
+    { header: "Aşama", key: "stage", width: 12 },
+    { header: "Randevu Tarihi", key: "appointment", width: 20 },
+    { header: "AI Analiz Özeti", key: "ai_summary", width: 50 },
+    { header: "Kayıt Tahmini (%)", key: "ai_score", width: 16 },
+    { header: "Görüşme Başlangıcı", key: "started_at", width: 20 },
+  ];
+  ws.getRow(1).font = { bold: true };
+
+  const stageLabels = { yeni: "Yeni", olumlu: "Olumlu", olumsuz: "Olumsuz", randevu: "Randevu", kayit: "Kayıt" };
+
+  for (const l of leads || []) {
+    const apptDates = (l.appointments || []).map((a) => a.scheduled_at).filter(Boolean).sort();
+    const lastAppt = apptDates[apptDates.length - 1];
+    ws.addRow({
+      phone: l.wa_id || l.phone || "",
+      parent_name: l.parent_name || "",
+      student_name: l.student_name || "",
+      district: l.district || "",
+      campus: l.campus || "",
+      department: l.department || "",
+      grade: l.grade || "",
+      stage: stageLabels[l.stage] || l.stage || "",
+      appointment: lastAppt ? new Date(lastAppt).toLocaleString("tr-TR") : "",
+      ai_summary: l.ai_summary || "",
+      ai_score: l.ai_score ?? "",
+      started_at: l.started_at ? new Date(l.started_at).toLocaleString("tr-TR") : "",
+    });
+  }
+
+  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+  res.setHeader("Content-Disposition", `attachment; filename="gorusmeler.xlsx"`);
+  await wb.xlsx.write(res);
+  res.end();
 });
 
 // ============================================================

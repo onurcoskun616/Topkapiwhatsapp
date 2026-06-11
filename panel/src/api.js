@@ -29,6 +29,13 @@ export const api = {
   templates: () => j(`/api/templates`),
   media: () => j(`/api/media`),
   reports: (period) => j(`/api/reports?period=${period}`),
+  exportLeadsUrl: ({ from, to, period }) => {
+    const q = new URLSearchParams();
+    if (from) q.set("from", from);
+    if (to) q.set("to", to);
+    if (!from && !to && period) q.set("period", period);
+    return `${API}/api/export/leads?${q.toString()}`;
+  },
 };
 
 // Realtime için (Supabase): yeni mesaj/lead değişimini dinle.

@@ -21,6 +21,7 @@ create table if not exists leads (
   parent_name     text,                            -- veli adı soyadı (LLM/operatör doldurur)
   student_name    text,                            -- öğrenci adı soyadı (LLM/operatör doldurur)
   phone           text,
+  district        text,                            -- ilçe (LLM/operatör doldurur)
   campus          text,                            -- İkitelli OSB | İstanbul OSB | Esenyurt | Kıraç | Çorlu
   source          text,                            -- mecra: WhatsApp Reklam | Web Sitesi | Instagram | Tavsiye
   department      text,                            -- Otomotiv | Makine | Mekatronik | Elektrik-Elektronik | Kimya | Biyomedikal | İnşaat
