@@ -1,0 +1,8 @@
+{
+  "appId": "com.topkapiokullari.whatsapp",
+  "appName": "Topkapı WhatsApp Merkezi",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}
