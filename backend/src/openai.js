@@ -61,6 +61,32 @@ export async function analyzeConversation(messages) {
   }
 }
 
+// 1.5) HATIRLATMA — veli son soruya cevap vermediyse, soruyu farklı bir
+// şekilde tekrar hatırlat
+export async function generateFollowUp(messages) {
+  const history = messages.map((m) => ({
+    role: m.direction === "in" ? "user" : "assistant",
+    content: m.body,
+  }));
+  const completion = await getClient().chat.completions.create({
+    model: MODEL,
+    temperature: 0.6,
+    messages: [
+      { role: "system", content: SYSTEM_PROMPT },
+      ...history,
+      {
+        role: "system",
+        content:
+          "Veli, en son sorduğun soruya/verdiğin bilgiye henüz cevap vermedi. " +
+          "Aynı konuyu, farklı ve kısa bir ifadeyle, nazikçe tekrar hatırlat " +
+          "(aynı cümleleri tekrarlama). Sadece veliye gönderilecek hatırlatma " +
+          "mesajını yaz.",
+      },
+    ],
+  });
+  return completion.choices[0].message.content;
+}
+
 // 2) YANIT — veliye okul danışmanı kimliğiyle cevap üret
 export async function generateReply(messages) {
   const history = messages.map((m) => ({

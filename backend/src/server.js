@@ -5,7 +5,7 @@ import express from "express";
 import cors from "cors";
 import { supabase } from "./supabase.js";
 import { sendText, parseIncoming } from "./whatsapp.js";
-import { analyzeConversation, generateReply } from "./openai.js";
+import { analyzeConversation, generateReply, generateFollowUp } from "./openai.js";
 
 const app = express();
 app.use(express.json());
@@ -256,6 +256,53 @@ app.get("/api/reports", async (req, res) => {
   const { data: leads } = await supabase.from("leads").select("*");
   res.json({ totalLeads: leads?.length || 0, note: "Rapor hesaplama TODO" });
 });
+
+// ============================================================
+// HATIRLATMA OTOMASYONU
+// ============================================================
+// AI'ın son sorusuna/mesajına 2 saat boyunca cevap gelmezse, aynı soruyu
+// farklı bir ifadeyle tekrar hatırlatır. 22:00-08:00 (Türkiye saati)
+// arasında hatırlatma gönderilmez.
+const FOLLOW_UP_DELAY_MS = 2 * 60 * 60 * 1000;
+
+async function checkFollowUps() {
+  const turkeyHour = (new Date().getUTCHours() + 3) % 24;
+  if (turkeyHour >= 22 || turkeyHour < 8) return;
+
+  const cutoff = new Date(Date.now() - FOLLOW_UP_DELAY_MS).toISOString();
+
+  const { data: leads } = await supabase
+    .from("leads").select("id, wa_id, ai_enabled, stage")
+    .eq("ai_enabled", true)
+    .not("stage", "in", '("olumsuz","kayit")');
+
+  for (const lead of leads || []) {
+    const { data: lastMsg } = await supabase
+      .from("messages").select("*").eq("lead_id", lead.id)
+      .order("created_at", { ascending: false }).limit(1).maybeSingle();
+
+    if (!lastMsg || lastMsg.direction !== "out") continue;
+    if (lastMsg.follow_up_sent) continue;
+    if (new Date(lastMsg.created_at) > new Date(cutoff)) continue;
+
+    try {
+      const { data: msgs } = await supabase
+        .from("messages").select("*").eq("lead_id", lead.id).order("created_at");
+      const followUp = await generateFollowUp(msgs);
+
+      await sendText(lead.wa_id, followUp);
+      await supabase.from("messages").insert({
+        lead_id: lead.id, direction: "out", body: followUp, by_ai: true, follow_up_sent: true,
+      });
+      await supabase.from("messages").update({ follow_up_sent: true }).eq("id", lastMsg.id);
+      await supabase.from("leads").update({ last_message_at: new Date().toISOString() }).eq("id", lead.id);
+    } catch (e) {
+      console.error("Hatırlatma gönderme hatası:", lead.id, e.message);
+    }
+  }
+}
+
+setInterval(checkFollowUps, 10 * 60 * 1000);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => console.log(`Backend çalışıyor: port ${PORT}`));

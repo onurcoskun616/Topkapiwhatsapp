@@ -49,6 +49,7 @@ create table if not exists messages (
   type          text default 'text',               -- text | image | document | video
   media_url     text,
   by_ai         boolean default false,             -- AI mı gönderdi
+  follow_up_sent boolean default false,            -- bu mesaj için hatırlatma gönderildi mi
   wa_message_id text,                               -- Meta mesaj kimliği
   created_at    timestamptz default now()
 );
