@@ -261,11 +261,94 @@ app.get("/api/media", async (_req, res) => {
 
 // Raporlama metrikleri
 app.get("/api/reports", async (req, res) => {
-  // TODO: periyot (günlük/haftalık/aylık/yıllık) parametresine göre hesapla.
-  // status_log ve leads tablolarından: huni, mecra, bölüm, operatör performansı,
-  // günlük yeni görüşme (son 30 gün), haftanın günü kırılımı.
-  const { data: leads } = await supabase.from("leads").select("*");
-  res.json({ totalLeads: leads?.length || 0, note: "Rapor hesaplama TODO" });
+  const period = req.query.period || "Haftalık";
+  const since = new Date();
+  if (period === "Günlük") since.setHours(0, 0, 0, 0);
+  else if (period === "Haftalık") since.setDate(since.getDate() - 7);
+  else if (period === "Aylık") since.setDate(since.getDate() - 30);
+  else since.setDate(since.getDate() - 365);
+
+  const { data: allLeads } = await supabase.from("leads").select("*");
+  const { data: operators } = await supabase.from("operators").select("id, name");
+  const opName = Object.fromEntries((operators || []).map((o) => [o.id, o.name]));
+
+  const leads = (allLeads || []).filter((l) => new Date(l.started_at || l.created_at) >= since);
+
+  const total = leads.length;
+  const olumlu = leads.filter((l) => ["olumlu", "randevu", "kayit"].includes(l.stage)).length;
+  const randevu = leads.filter((l) => ["randevu", "kayit"].includes(l.stage)).length;
+  const kayit = leads.filter((l) => l.stage === "kayit").length;
+  const convRate = total ? Math.round((kayit / total) * 100) : 0;
+
+  const srcDist = {}, depDist = {}, stageDist = {};
+  for (const l of leads) {
+    if (l.source) srcDist[l.source] = (srcDist[l.source] || 0) + 1;
+    if (l.department) depDist[l.department] = (depDist[l.department] || 0) + 1;
+    stageDist[l.stage] = (stageDist[l.stage] || 0) + 1;
+  }
+
+  // Yanıt süreleri (veli mesajı -> bir sonraki operatör/AI mesajı arası)
+  let respTimes = [];
+  const opStats = {};
+  const ids = leads.map((l) => l.id);
+  if (ids.length) {
+    const { data: msgs } = await supabase
+      .from("messages").select("lead_id, direction, created_at").in("lead_id", ids).order("created_at");
+    const byLead = {};
+    for (const m of msgs || []) (byLead[m.lead_id] ??= []).push(m);
+    for (const l of leads) {
+      const arr = byLead[l.id] || [];
+      const times = [];
+      for (let i = 0; i < arr.length - 1; i++) {
+        if (arr[i].direction === "in" && arr[i + 1].direction === "out") {
+          times.push((new Date(arr[i + 1].created_at) - new Date(arr[i].created_at)) / 60000);
+        }
+      }
+      respTimes.push(...times);
+      const opId = l.operator_id || "unassigned";
+      opStats[opId] ??= { total: 0, kayit: 0, respTimes: [] };
+      opStats[opId].total++;
+      if (l.stage === "kayit") opStats[opId].kayit++;
+      opStats[opId].respTimes.push(...times);
+    }
+  }
+  const avgResp = respTimes.length ? Math.round(respTimes.reduce((a, b) => a + b, 0) / respTimes.length) : 0;
+  const fastRate = respTimes.length ? Math.round((respTimes.filter((t) => t <= 15).length / respTimes.length) * 100) : 0;
+
+  const opPerf = Object.entries(opStats).map(([id, s]) => ({
+    operator: opName[id] || "Atanmamış",
+    total: s.total,
+    kayit: s.kayit,
+    convRate: s.total ? Math.round((s.kayit / s.total) * 100) : 0,
+    avgResp: s.respTimes.length ? Math.round(s.respTimes.reduce((a, b) => a + b, 0) / s.respTimes.length) : 0,
+  }));
+
+  // Son 30 gün: günlük yeni görüşme + kayıt sayısı
+  const DAYNAMES = ["Pazar", "Pazartesi", "Salı", "Çarşamba", "Perşembe", "Cuma", "Cumartesi"];
+  const last30 = [];
+  for (let k = 29; k >= 0; k--) {
+    const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - k);
+    const next = new Date(d); next.setDate(d.getDate() + 1);
+    const started = (allLeads || []).filter((l) => {
+      const dt = new Date(l.started_at || l.created_at); return dt >= d && dt < next;
+    }).length;
+    const reg = (allLeads || []).filter((l) => l.registered_at && new Date(l.registered_at) >= d && new Date(l.registered_at) < next).length;
+    last30.push({ date: d.toISOString().slice(0, 10), label: `${d.getDate()}.${d.getMonth() + 1}`, started, reg, dow: d.getDay() });
+  }
+
+  // Haftanın günü kırılımı (tüm zamanlar)
+  const byDow = DAYNAMES.map((name, i) => ({
+    name,
+    start: (allLeads || []).filter((l) => new Date(l.started_at || l.created_at).getDay() === i).length,
+    reg: (allLeads || []).filter((l) => l.registered_at && new Date(l.registered_at).getDay() === i).length,
+  }));
+  const topRegDate = last30.reduce((a, b) => (b.reg > a.reg ? b : a), last30[0]);
+
+  res.json({
+    period, total, olumlu, randevu, kayit, convRate, avgResp, fastRate,
+    today: last30[last30.length - 1].started,
+    srcDist, depDist, stageDist, opPerf, last30, byDow, topRegDate,
+  });
 });
 
 // ============================================================
@@ -314,6 +397,49 @@ async function checkFollowUps() {
 }
 
 setInterval(checkFollowUps, 10 * 60 * 1000);
+
+// ============================================================
+// RANDEVU HATIRLATMA OTOMASYONU
+// ============================================================
+// Yarın için planlanmış, henüz hatırlatma gönderilmemiş randevular için
+// veliye WhatsApp üzerinden hatırlatma mesajı gönderir.
+async function checkAppointmentReminders() {
+  const turkeyHour = (new Date().getUTCHours() + 3) % 24;
+  if (turkeyHour >= 22 || turkeyHour < 8) return;
+
+  const start = new Date(); start.setDate(start.getDate() + 1); start.setHours(0, 0, 0, 0);
+  const end = new Date(start); end.setHours(23, 59, 59, 999);
+
+  const { data: appts } = await supabase
+    .from("appointments").select("*, leads(wa_id, parent_name, name, campus)")
+    .eq("reminder_sent", false)
+    .gte("scheduled_at", start.toISOString()).lte("scheduled_at", end.toISOString());
+
+  for (const appt of appts || []) {
+    const lead = appt.leads;
+    if (!lead?.wa_id) continue;
+
+    const when = new Date(appt.scheduled_at);
+    const saat = when.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Istanbul" });
+    const adSoyad = lead.parent_name || lead.name || "";
+    const text =
+      `Sayın ${adSoyad}, yarın saat ${saat} için ${lead.campus || "kampüsümüzde"} ` +
+      `planladığımız görüşme/ziyaret randevunuzu hatırlatmak isteriz. ` +
+      `Bu saat sizin için hâlâ uygun mu?`;
+
+    try {
+      await sendText(lead.wa_id, text);
+      await supabase.from("messages").insert({
+        lead_id: appt.lead_id, direction: "out", body: text, by_ai: true,
+      });
+      await supabase.from("appointments").update({ reminder_sent: true }).eq("id", appt.id);
+    } catch (e) {
+      console.error("Randevu hatırlatma hatası:", appt.id, e.message);
+    }
+  }
+}
+
+setInterval(checkAppointmentReminders, 30 * 60 * 1000);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => console.log(`Backend çalışıyor: port ${PORT}`));

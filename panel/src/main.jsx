@@ -322,7 +322,10 @@ function App() {
                   <div key={c.id} style={S.bellItem}>
                     <div><b style={{ fontSize:12.5, color:"#fff" }}>{c.name}</b>
                       <div style={{ fontSize:11, color:"#94a3b8" }}>{c.appointment.date.toLocaleString("tr-TR",{weekday:"short",hour:"2-digit",minute:"2-digit"})} · {c.campus}</div></div>
-                    <button style={S.confirmBtn} onClick={()=>{ update(c.id, cc=>({ appointment:{...cc.appointment, confirmed:true} })); }}>Teyit Et</button>
+                    <button style={S.confirmBtn} onClick={async ()=>{
+                      try { await api.confirmAppointment(c.appointment.id); } catch(err) { console.error(err); }
+                      update(c.id, cc=>({ appointment:{...cc.appointment, confirmed:true} }));
+                    }}>Teyit Et</button>
                   </div>
                 ))}
               </div>
@@ -336,7 +339,7 @@ function App() {
         ? <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", color:"#64748b", fontSize:14 }}>Yükleniyor…</div>
         : tab==="inbox"
           ? <Inboxer convos={convos} update={update} setConvos={setConvos} activeId={activeId} setActiveId={setActiveId} isMobile={isMobile}/>
-          : <Reports convos={convos}/>}
+          : <Reports/>}
     </div>
   );
 }
@@ -650,79 +653,55 @@ function toLocalInput(d) {
   return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
 }
 
-function Reports({ convos }) {
+function Reports() {
   const [period, setPeriod] = useState("Haftalık");
   const periods = ["Günlük","Haftalık","Aylık","Yıllık"];
-  const mult = { "Günlük":1, "Haftalık":6, "Aylık":26, "Yıllık":300 }[period];
-  const funnel = useMemo(() => {
-    const total = convos.length*mult;
-    // "Olumlu" = ilgili/potansiyel (olumlu + randevu + kayıt hepsi olumlu sayılır)
-    const olumlu = convos.filter((c)=>["olumlu","randevu","kayit"].includes(c.stage)).length*mult;
-    const randevu = convos.filter((c)=>["randevu","kayit"].includes(c.stage)).length*mult;
-    const kayit = convos.filter((c)=>c.stage==="kayit").length*mult;
-    return { total, olumlu, randevu, kayit };
-  }, [convos, mult]);
-  const avgResp = Math.round(convos.reduce((a,c)=>a+c.respMin,0)/convos.length);
-  const fastRate = Math.round(convos.filter((c)=>c.respMin<=15).length/convos.length*100);
-  const opPerf = OPERATORS.map((op)=>{ const arr=convos.filter((c)=>c.operator===op); const k=arr.filter((c)=>c.stage==="kayit").length;
-    const avg=arr.length?Math.round(arr.reduce((a,c)=>a+c.respMin,0)/arr.length):0; return { op, total:arr.length*mult, kayit:k*mult, avg }; });
-  const srcDist = SOURCES.map((s)=>({ s, n: convos.filter((c)=>c.source===s).length*mult }));
-  const depDist = DEPARTMENTS.map((d)=>({ d, n: convos.filter((c)=>c.department===d).length*mult })).filter(x=>x.n>0);
-  const maxSrc = Math.max(...srcDist.map((s)=>s.n),1);
-  const maxDep = Math.max(...depDist.map((s)=>s.n),1);
-  const convRate = funnel.total ? Math.round(funnel.kayit/funnel.total*100) : 0;
+  const [r, setR] = useState(null);
 
-  // ===== ZAMAN BAZLI ANALİZLER (gerçek tarihlerden) =====
-  const DAYNAMES = ["Pazar","Pazartesi","Salı","Çarşamba","Perşembe","Cuma","Cumartesi"];
-  const dayKey = (d) => `${d.getDate()}.${d.getMonth()+1}`;
+  useEffect(() => {
+    let cancelled = false;
+    api.reports(period).then((data) => { if (!cancelled) setR(data); }).catch((e) => console.error("Rapor yükleme hatası:", e));
+    return () => { cancelled = true; };
+  }, [period]);
 
-  // Son 30 günde her gün kaç YENİ sohbet başladı
-  const last30 = useMemo(() => {
-    const arr = [];
-    for (let k=29; k>=0; k--) {
-      const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-k);
-      const next = new Date(d); next.setDate(d.getDate()+1);
-      const started = convos.filter(c => c.startedAt >= d && c.startedAt < next).length;
-      const reg = convos.filter(c => c.registeredAt && c.registeredAt >= d && c.registeredAt < next).length;
-      arr.push({ date: d, label: dayKey(d), started, reg, dow: d.getDay() });
-    }
-    return arr;
-  }, [convos]);
-  const maxStarted = Math.max(...last30.map(x=>x.started), 1);
+  if (!r) return <div style={S.reportBody}><div style={{ color:"#64748b", fontSize:13 }}>Yükleniyor…</div></div>;
 
-  // Haftanın günü kırılımı: en çok sohbet başlatılan & en çok kayıt alınan gün
-  const byDow = useMemo(() => {
-    const start = Array(7).fill(0), reg = Array(7).fill(0);
-    convos.forEach(c => { start[c.startedAt.getDay()]++; if (c.registeredAt) reg[c.registeredAt.getDay()]++; });
-    return DAYNAMES.map((n,i)=>({ name:n, start:start[i], reg:reg[i] }));
-  }, [convos]);
-  const maxDowStart = Math.max(...byDow.map(x=>x.start),1);
-  const maxDowReg = Math.max(...byDow.map(x=>x.reg),1);
-  const topStartDay = byDow.reduce((a,b)=>b.start>a.start?b:a, byDow[0]);
-  const topRegDay = byDow.reduce((a,b)=>b.reg>a.reg?b:a, byDow[0]);
-  // 30 gün içinde en çok kayıt alınan tekil gün
-  const topRegDate = last30.reduce((a,b)=>b.reg>a.reg?b:a, last30[0]);
+  const funnel = { total: r.total, olumlu: r.olumlu, randevu: r.randevu, kayit: r.kayit };
+  const srcDist = SOURCES.map((s) => ({ s, n: r.srcDist[s] || 0 }));
+  const depDist = DEPARTMENTS.map((d) => ({ d, n: r.depDist[d] || 0 })).filter((x) => x.n > 0);
+  const maxSrc = Math.max(...srcDist.map((s) => s.n), 1);
+  const maxDep = Math.max(...depDist.map((s) => s.n), 1);
+
+  const last30 = r.last30;
+  const maxStarted = Math.max(...last30.map((x) => x.started), 1);
+
+  const byDow = r.byDow;
+  const maxDowStart = Math.max(...byDow.map((x) => x.start), 1);
+  const maxDowReg = Math.max(...byDow.map((x) => x.reg), 1);
+  const topStartDay = byDow.reduce((a, b) => (b.start > a.start ? b : a), byDow[0]);
+  const topRegDay = byDow.reduce((a, b) => (b.reg > a.reg ? b : a), byDow[0]);
+  const topRegDate = r.topRegDate;
 
   return (
     <div style={S.reportBody}>
       <div style={S.periodRow}>{periods.map((p)=>(<button key={p} onClick={()=>setPeriod(p)} style={p===period?S.perA:S.per}>{p}</button>))}</div>
       <div style={S.kpiRow}>
         <Kpi i="msg" l="Toplam Konuşma" v={funnel.total} c="#3b82f6"/>
-        <Kpi i="calendar" l="Bugün Yeni" v={last30[last30.length-1].started} c="#06b6d4"/>
+        <Kpi i="calendar" l="Bugün Yeni" v={r.today} c="#06b6d4"/>
         <Kpi i="users" l="Olumlu / Potansiyel" v={funnel.olumlu} c="#10b981"/>
         <Kpi i="calendar" l="Randevu" v={funnel.randevu} c="#f59e0b"/>
         <Kpi i="check" l="Kayıt" v={funnel.kayit} c="#10b981"/>
-        <Kpi i="target" l="Dönüşüm" v={`%${convRate}`} c={gold}/>
-        <Kpi i="timer" l="Ort. Yanıt" v={`${avgResp} dk`} c="#06b6d4"/>
-        <Kpi i="zap" l="Hızlı Dönüş (15dk altı)" v={`%${fastRate}`} c="#ec4899"/>
+        <Kpi i="target" l="Dönüşüm" v={`%${r.convRate}`} c={gold}/>
+        <Kpi i="timer" l="Ort. Yanıt" v={`${r.avgResp} dk`} c="#06b6d4"/>
+        <Kpi i="zap" l="Hızlı Dönüş (15dk altı)" v={`%${r.fastRate}`} c="#ec4899"/>
       </div>
       <div style={S.repGrid}>
         <div style={S.repCard}>
           <h3 style={S.repTitle}><I n="target" size={15}/> Dönüşüm Hunisi · {period}</h3>
           {[{l:"Toplam Konuşma",v:funnel.total,c:"#3b82f6"},{l:"Olumlu / Potansiyel",v:funnel.olumlu,c:"#10b981"},{l:"Randevu Verildi",v:funnel.randevu,c:"#f59e0b"},{l:"Kayıt Oldu",v:funnel.kayit,c:"#22c55e"}].map((f)=>(
             <div key={f.l} style={{ marginBottom:13 }}>
-              <div style={{ display:"flex", justifyContent:"space-between", fontSize:12.5, marginBottom:5 }}><b style={{color:"#e2e8f0"}}>{f.l}</b><span style={{ color:"#64748b" }}>{f.v} · <b style={{ color:f.c }}>%{Math.round(f.v/funnel.total*100)}</b></span></div>
-              <div style={S.track}><div style={{ ...S.fill, width:`${(f.v/funnel.total)*100}%`, background:f.c }}/></div>
+              <div style={{ display:"flex", justifyContent:"space-between", fontSize:12.5, marginBottom:5 }}><b style={{color:"#e2e8f0"}}>{f.l}</b><span style={{ color:"#64748b" }}>{f.v} · <b style={{ color:f.c }}>%{funnel.total?Math.round(f.v/funnel.total*100):0}</b></span></div>
+              <div style={S.track}><div style={{ ...S.fill, width:`${funnel.total?(f.v/funnel.total)*100:0}%`, background:f.c }}/></div>
             </div>))}
         </div>
         <div style={S.repCard}>
@@ -736,7 +715,7 @@ function Reports({ convos }) {
         {/* Değerlendirme dağılımı (LLM + operatör) */}
         <div style={S.repCard}>
           <h3 style={S.repTitle}><I n="target" size={15}/> Değerlendirme Dağılımı · {period}</h3>
-          {Object.keys(STAGES).map((k)=>{ const n=convos.filter(c=>c.stage===k).length*mult; const max=convos.length*mult||1; return (
+          {Object.keys(STAGES).map((k)=>{ const n=r.stageDist[k]||0; const max=funnel.total||1; return (
             <div key={k} style={{ marginBottom:13 }}>
               <div style={{ display:"flex", justifyContent:"space-between", fontSize:12.5, marginBottom:5 }}><b style={{color:"#e2e8f0"}}>{STAGES[k].label}</b><span style={{ color:"#64748b" }}>{n}</span></div>
               <div style={S.track}><div style={{ ...S.fill, width:`${(n/max)*100}%`, background:STAGES[k].color }}/></div>
@@ -756,11 +735,12 @@ function Reports({ convos }) {
           <h3 style={S.repTitle}><I n="users" size={15}/> Operatör Performansı · {period}</h3>
           <div style={{ overflowX:"auto" }}>
             <table style={S.table}><thead><tr>{["Operatör","Konuşma","Kayıt","Dönüşüm","Ort. Yanıt"].map((h)=><th key={h} style={S.th}>{h}</th>)}</tr></thead>
-              <tbody>{opPerf.map((o)=>(
-                <tr key={o.op} style={{ borderTop:"1px solid #1e293b" }}>
-                  <td style={S.td}><b style={{color:"#fff"}}>{o.op}</b></td><td style={S.td}>{o.total}</td><td style={S.td}>{o.kayit}</td>
-                  <td style={S.td}><span style={{ color:gold, fontWeight:700 }}>%{o.total?Math.round(o.kayit/o.total*100):0}</span></td>
-                  <td style={S.td}><span style={{ color:o.avg<=15?"#10b981":o.avg<=30?"#f59e0b":"#ef4444" }}>{o.avg} dk</span></td>
+              <tbody>{r.opPerf.length===0 && <tr><td style={S.td} colSpan={5}>Veri yok.</td></tr>}
+              {r.opPerf.map((o)=>(
+                <tr key={o.operator} style={{ borderTop:"1px solid #1e293b" }}>
+                  <td style={S.td}><b style={{color:"#fff"}}>{o.operator}</b></td><td style={S.td}>{o.total}</td><td style={S.td}>{o.kayit}</td>
+                  <td style={S.td}><span style={{ color:gold, fontWeight:700 }}>%{o.convRate}</span></td>
+                  <td style={S.td}><span style={{ color:o.avgResp<=15?"#10b981":o.avgResp<=30?"#f59e0b":"#ef4444" }}>{o.avgResp} dk</span></td>
                 </tr>))}</tbody>
             </table>
           </div>
