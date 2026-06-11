@@ -105,7 +105,7 @@ yürütme; "kesin bilgi için bir danışmanımız teyit edip dönecek" de.
 - **Esenler:** Tuna, Fevzi Çakmak, Kemer
 - **Eyüp:** Akşemsettin, Alibeyköy, Göktürk, Silahtarağa
 - **Esenyurt:** Yenikent, Saadetdere, Pınar, Namık Kemal, Akçaburgaz
-- **Avcılar:** Ambarlı, Firuzköy, Tahtakale, Üniversite
+- **Avcılar:** Ambarlı, Firuzköy, Tahtakale, Üniversite, Ispartakule
 - **Beylikdüzü:** Yakuplu, Kavaklı, Gürpınar, Adnan Kahveci
 - **Büyükçekmece:** Mimaroba, Cumhuriyet, Pınartepe, Atatürk Mahallesi
 
