@@ -248,6 +248,7 @@ function normalizeLead(lead, messages = []) {
     grade: lead.grade || "",
     parentName: lead.parent_name || "",
     studentName: lead.student_name || "",
+    district: lead.district || "",
     appointment: lead.appointment ? { id: lead.appointment.id, date: new Date(lead.appointment.scheduled_at), confirmed: lead.appointment.confirmed } : null,
     aiEnabled: lead.ai_enabled !== false,
     aiMode: lead.ai_mode || "draft",
@@ -537,13 +538,22 @@ function ChatView({ convo, onSend, update, onBack, isMobile }) {
                 style={S.select}/>
             </div>
           </div>
-          {/* Kampüs */}
-          <div style={{ marginBottom:12 }}>
-            <label style={S.fieldLbl}>Kampüs {convo.aiFilled && convo.campus && <span style={S.aiTag}>AI</span>}</label>
-            <select value={convo.campus} onChange={(e)=>{ update(convo.id,{campus:e.target.value}); api.updateLead(convo.id,{campus:e.target.value}).catch(console.error); }} style={S.select}>
-              <option value="">Seçiniz…</option>
-              {CAMPUSES.map(c=><option key={c} value={c}>{c}</option>)}
-            </select>
+          {/* İlçe & Kampüs */}
+          <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:12 }}>
+            <div style={{ flex:1, minWidth:150 }}>
+              <label style={S.fieldLbl}>İlçe {convo.district && <span style={S.aiTag}>AI</span>}</label>
+              <input value={convo.district} placeholder="Belirtilmedi"
+                onChange={(e)=>update(convo.id,{district:e.target.value})}
+                onBlur={(e)=>{ api.updateLead(convo.id,{district:e.target.value}).catch(console.error); }}
+                style={S.select}/>
+            </div>
+            <div style={{ flex:1, minWidth:150 }}>
+              <label style={S.fieldLbl}>Kampüs {convo.aiFilled && convo.campus && <span style={S.aiTag}>AI</span>}</label>
+              <select value={convo.campus} onChange={(e)=>{ update(convo.id,{campus:e.target.value}); api.updateLead(convo.id,{campus:e.target.value}).catch(console.error); }} style={S.select}>
+                <option value="">Seçiniz…</option>
+                {CAMPUSES.map(c=><option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
           </div>
           {/* Bölüm & Sınıf */}
           <div style={{ display:"flex", gap:10, flexWrap:"wrap", marginBottom:12 }}>
