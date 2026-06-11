@@ -794,7 +794,9 @@ function Reports() {
       <div style={S.kpiRow}>
         <Kpi i="msg" l="Toplam Konuşma" v={funnel.total} c="#3b82f6"/>
         <Kpi i="calendar" l="Bugün Yeni" v={r.today} c="#06b6d4"/>
+        <Kpi i="msg" l="Yeni" v={r.stageDist?.yeni || 0} c="#3b82f6"/>
         <Kpi i="users" l="Olumlu / Potansiyel" v={funnel.olumlu} c="#10b981"/>
+        <Kpi i="users" l="Olumsuz" v={funnel.olumsuz} c="#ef4444"/>
         <Kpi i="calendar" l="Randevu" v={funnel.randevu} c="#f59e0b"/>
         <Kpi i="check" l="Kayıt" v={funnel.kayit} c="#10b981"/>
         <Kpi i="target" l="Dönüşüm" v={`%${r.convRate}`} c={gold}/>
