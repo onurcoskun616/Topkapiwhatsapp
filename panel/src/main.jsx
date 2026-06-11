@@ -297,11 +297,23 @@ function App() {
     }
   }, []);
 
+  const activeIdRef = useRef(activeId);
+  useEffect(() => { activeIdRef.current = activeId; }, [activeId]);
+
+  const refreshActive = useCallback(async () => {
+    const id = activeIdRef.current;
+    if (!id) return;
+    try {
+      const { lead, messages } = await api.getLead(id);
+      setConvos(prev => prev.map(c => c.id === id ? { ...normalizeLead(lead, messages) } : c));
+    } catch (e) { console.error("Mesaj yenileme hatası:", e); }
+  }, []);
+
   useEffect(() => {
     loadLeads();
-    const interval = setInterval(loadLeads, 15000); // 15 sn'de bir yenile
+    const interval = setInterval(() => { loadLeads(); refreshActive(); }, 4000); // 4 sn'de bir yenile
     return () => clearInterval(interval);
-  }, [loadLeads]);
+  }, [loadLeads, refreshActive]);
 
   function update(id, patch) {
     setConvos(p => p.map(c => c.id === id ? { ...c, ...(typeof patch==="function"?patch(c):patch) } : c));
