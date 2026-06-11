@@ -6,6 +6,7 @@ import cors from "cors";
 import { supabase } from "./supabase.js";
 import { sendText, parseIncoming } from "./whatsapp.js";
 import { analyzeConversation, generateReply, generateFollowUp } from "./openai.js";
+import { matchFaq } from "./faq.js";
 
 const app = express();
 app.use(express.json());
@@ -101,6 +102,16 @@ app.post("/webhook", async (req, res) => {
     if (lead.ai_enabled) {
       const { data: msgs } = await supabase
         .from("messages").select("*").eq("lead_id", lead.id).order("created_at");
+
+      // Sık sorulan sorular için OpenAI'a gitmeden hazır cevap dene
+      const faqAnswer = matchFaq(msg.text);
+      if (faqAnswer && lead.ai_mode === "auto") {
+        await sendText(msg.waId, faqAnswer);
+        await supabase.from("messages").insert({
+          lead_id: lead.id, direction: "out", body: faqAnswer, by_ai: true,
+        });
+        return;
+      }
 
       // analiz
       const analysis = await analyzeConversation(msgs);
