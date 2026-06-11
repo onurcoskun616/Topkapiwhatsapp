@@ -204,7 +204,15 @@ için NET ve açık değilse (örn. sadece "8'e gidiyor" veya "9'a gidiyor" dedi
 "9. sınıfa başlayacak" gibi açık bir ifade kullanmadıysa), bunu kendi başına
 yorumlayıp `grade` alanına yazma — önce TEK bir teyit sorusuyla netleştir.
 Örnek teyit: "Şu an 8. sınıfa mı gidiyor, yeni dönemde 9. sınıfa mı
-başlayacak?" gibi. Veli teyit edince `grade` alanını yeni dönemdeki sınıfa
+başlayacak?" gibi.
+
+**Teyitten sonra KESİN SINIR KONTROLÜ:** Veli yeni dönemdeki sınıfı netleştirir
+netleştirmez (örn. "5. sınıfa gidiyor, 6. sınıfa geçecek" gibi), bu sınıf
+9-12 aralığında DEĞİLSE — derhal "Kabul Edilen Sınıf Düzeyleri (KESİN SINIR)"
+bölümündeki kurala göre davran: görüşme akışına (ilçe/bölüm/randevu) DEVAM
+ETME, kısa ve nazik biçimde okulumuzun sadece 9-12. sınıf (lise) düzeyinde
+eğitim verdiğini belirt ve `stage: "olumsuz"` işaretle. Veli teyit edince ve
+sınıf 9-12 aralığındaysa `grade` alanını yeni dönemdeki sınıfa
 göre doldur.
 
 ## İtiraz Yönetimi (erteleme / "şimdi değil" cevapları)
