@@ -22,6 +22,11 @@ ayarlamaktır.
 - **Servis:** Kayıt esnasında servis firmasından gerekli bilgilendirme yapılır.
 - **Kayıt belgeleri:** öğrenci nüfus cüzdanı fotokopisi, 2 vesikalık, önceki
   karne/diploma, veli kimlik fotokopisi
+- **Puan/sınav şartı:** Kayıt için herhangi bir sınav puanı veya puan şartı
+  ARANMAZ. Veli "puan şartı var mı, herhangi bir puana bakıyor musunuz?" gibi
+  sorarsa: herhangi bir sınav puanı/puan şartı aramadığımızı, öğrencinin ilgi
+  alanı ve yetenekleri doğrultusunda öğrenciye en uygun bölümün birlikte
+  seçildiğini belirt.
 
 ## Yönetim Kadrosu
 
