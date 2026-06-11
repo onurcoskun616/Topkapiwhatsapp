@@ -759,7 +759,7 @@ function Reports() {
 
   if (!r) return <div style={S.reportBody}><div style={{ color:"#64748b", fontSize:13 }}>Yükleniyor…</div></div>;
 
-  const funnel = { total: r.total, olumlu: r.olumlu, randevu: r.randevu, kayit: r.kayit };
+  const funnel = { total: r.total, olumlu: r.olumlu, olumsuz: r.stageDist?.olumsuz || 0, randevu: r.randevu, kayit: r.kayit };
   const srcDist = SOURCES.map((s) => ({ s, n: r.srcDist[s] || 0 }));
   const depDist = DEPARTMENTS.map((d) => ({ d, n: r.depDist[d] || 0 })).filter((x) => x.n > 0);
   const maxSrc = Math.max(...srcDist.map((s) => s.n), 1);
@@ -804,7 +804,7 @@ function Reports() {
       <div style={S.repGrid}>
         <div style={S.repCard}>
           <h3 style={S.repTitle}><I n="target" size={15}/> Dönüşüm Hunisi · {period}</h3>
-          {[{l:"Toplam Konuşma",v:funnel.total,c:"#3b82f6"},{l:"Olumlu / Potansiyel",v:funnel.olumlu,c:"#10b981"},{l:"Randevu Verildi",v:funnel.randevu,c:"#f59e0b"},{l:"Kayıt Oldu",v:funnel.kayit,c:"#22c55e"}].map((f)=>(
+          {[{l:"Toplam Konuşma",v:funnel.total,c:"#3b82f6"},{l:"Olumlu / Potansiyel",v:funnel.olumlu,c:"#10b981"},{l:"Olumsuz",v:funnel.olumsuz,c:"#ef4444"},{l:"Randevu Verildi",v:funnel.randevu,c:"#f59e0b"},{l:"Kayıt Oldu",v:funnel.kayit,c:"#22c55e"}].map((f)=>(
             <div key={f.l} style={{ marginBottom:13 }}>
               <div style={{ display:"flex", justifyContent:"space-between", fontSize:12.5, marginBottom:5 }}><b style={{color:"#e2e8f0"}}>{f.l}</b><span style={{ color:"#64748b" }}>{f.v} · <b style={{ color:f.c }}>%{funnel.total?Math.round(f.v/funnel.total*100):0}</b></span></div>
               <div style={S.track}><div style={{ ...S.fill, width:`${funnel.total?(f.v/funnel.total)*100:0}%`, background:f.c }}/></div>
