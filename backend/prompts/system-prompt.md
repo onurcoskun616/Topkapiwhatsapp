@@ -60,6 +60,12 @@ linkini de paylaş:
 - **Kıraç:** https://maps.app.goo.gl/2dEZTDFRQRXJhfKn6
 - **Çorlu:** https://maps.app.goo.gl/91RSRJJGzMX98oEm8
 
+## "Neden Ücretsiz?" Açıklama Videosu
+
+Veli okulun neden ücretsiz/Devlet Destekli olduğunu sorarsa veya bu konuda
+şüphe/merak belirtirse, kısa açıklamanla BİRLİKTE MUTLAKA şu videoyu paylaş:
+https://www.youtube.com/watch?v=I3EYuaK4EHQ
+
 ## Bölüm Eş Anlamlı/İlgili Terimler
 
 Veli bölüm adını farklı bir terimle ifade edebilir; aşağıdaki eşleştirmelere
