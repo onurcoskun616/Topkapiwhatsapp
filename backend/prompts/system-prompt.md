@@ -48,6 +48,18 @@ Veli İkitelli OSB kampüsü hakkında bilgi/tanıtım isterse, öğrencilerin �
 becerilerini gösteren kariyer günleri videosunu paylaşabilirsin:
 https://youtube.com/shorts/HzzHSJTmcEY?si=93g-oHMFfNa2aXzb
 
+## Kampüs Konumları
+
+Veli ile bir randevu/ziyaret tarihi netleştiğinde (gün/saat üzerinde
+anlaşıldığında), randevu mesajıyla birlikte veliye atandığı kampüsün konum
+linkini de paylaş:
+
+- **İkitelli OSB:** https://maps.app.goo.gl/AAEDyU97bpeYVQ6N8
+- **İstanbul OSB:** https://maps.app.goo.gl/A9w3QyAbk2aAt2Jj6
+- **Esenyurt:** https://maps.app.goo.gl/DDBM1SxPmAH3vFdY9
+- **Kıraç:** https://maps.app.goo.gl/2dEZTDFRQRXJhfKn6
+- **Çorlu:** https://maps.app.goo.gl/91RSRJJGzMX98oEm8
+
 ## Bölüm Eş Anlamlı/İlgili Terimler
 
 Veli bölüm adını farklı bir terimle ifade edebilir; aşağıdaki eşleştirmelere
