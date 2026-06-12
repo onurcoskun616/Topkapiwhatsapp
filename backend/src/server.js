@@ -481,17 +481,25 @@ async function checkFollowUps() {
     .not("stage", "in", '("olumsuz","kayit")');
 
   for (const lead of leads || []) {
-    const { data: lastMsg } = await supabase
-      .from("messages").select("*").eq("lead_id", lead.id)
-      .order("created_at", { ascending: false }).limit(1).maybeSingle();
+    const { data: msgs } = await supabase
+      .from("messages").select("*").eq("lead_id", lead.id).order("created_at");
+    if (!msgs || !msgs.length) continue;
 
-    if (!lastMsg || lastMsg.direction !== "out") continue;
-    if (lastMsg.follow_up_sent) continue;
+    const lastMsg = msgs[msgs.length - 1];
+    if (lastMsg.direction !== "out") continue;
     if (new Date(lastMsg.created_at) > new Date(cutoff)) continue;
 
+    // Son veli mesajından sonra zaten 1 veya daha fazla "out" mesaj
+    // gönderildiyse (ör. randevu hatırlatması), tekrar hatırlatma gönderme.
+    let outCountSinceLastIn = 0;
+    for (let i = msgs.length - 1; i >= 0; i--) {
+      if (msgs[i].direction === "in") break;
+      outCountSinceLastIn++;
+    }
+    if (outCountSinceLastIn >= 2) continue;
+    if (lastMsg.follow_up_sent) continue;
+
     try {
-      const { data: msgs } = await supabase
-        .from("messages").select("*").eq("lead_id", lead.id).order("created_at");
       const followUp = await generateFollowUp(msgs);
 
       await sendText(lead.wa_id, followUp);
