@@ -3,6 +3,7 @@ config(); // .env varsa yükle, yoksa Railway env değişkenlerini kullan
 // (rebuild tetiklemek için küçük yorum güncellemesi v2)
 import express from "express";
 import cors from "cors";
+import crypto from "crypto";
 import { supabase } from "./supabase.js";
 import { sendText, parseIncoming, getMediaInfo, downloadMedia } from "./whatsapp.js";
 import { analyzeConversation, generateReply, generateFollowUp, generateAppointmentReminder } from "./openai.js";
@@ -10,7 +11,9 @@ import { matchFaq } from "./faq.js";
 import ExcelJS from "exceljs";
 
 const app = express();
-app.use(express.json());
+app.use(express.json({
+  verify: (req, _res, buf) => { req.rawBody = buf; },
+}));
 app.use(cors({
   origin: (origin, cb) => cb(null, true),
   credentials: true,
@@ -65,8 +68,30 @@ app.get("/webhook", (req, res) => {
   res.sendStatus(403);
 });
 
+// Meta'dan gelen isteğin imzasını doğrula (X-Hub-Signature-256).
+// WHATSAPP_APP_SECRET tanımlı değilse kontrol atlanır (geliştirme ortamı).
+function verifyMetaSignature(req) {
+  const appSecret = process.env.WHATSAPP_APP_SECRET;
+  if (!appSecret) return true;
+  const signature = req.get("X-Hub-Signature-256");
+  if (!signature || !req.rawBody) return false;
+  const expected = "sha256=" + crypto
+    .createHmac("sha256", appSecret)
+    .update(req.rawBody)
+    .digest("hex");
+  try {
+    return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+  } catch {
+    return false;
+  }
+}
+
 // Gelen mesajlar
 app.post("/webhook", async (req, res) => {
+  if (!verifyMetaSignature(req)) {
+    console.warn("Webhook imza doğrulaması başarısız, istek reddedildi.");
+    return res.sendStatus(403);
+  }
   res.sendStatus(200); // Meta'ya hemen 200 dön
   const msg = parseIncoming(req.body);
   if (!msg) return;
