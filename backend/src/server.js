@@ -262,7 +262,7 @@ app.post("/api/leads/:id/send", async (req, res) => {
   const { data: lead } = await supabase.from("leads").select("wa_id").eq("id", req.params.id).single();
   try {
     if (media) {
-      await sendMedia(lead.wa_id, media.type, media.url, media.name);
+      await sendMedia(lead.wa_id, media.type, media.url, media.type === "document" ? media.name : null);
       await supabase.from("messages").insert({
         lead_id: req.params.id, direction: "out", body: media.name || "", by_ai: !!byAI,
         type: media.type, media_url: media.url,
