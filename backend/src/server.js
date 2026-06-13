@@ -322,10 +322,41 @@ app.get("/api/templates", async (_req, res) => {
   res.json(data || []);
 });
 
+app.post("/api/templates", async (req, res) => {
+  const { title, body, meta_name } = req.body;
+  if (!title || !body) return res.status(400).json({ error: "title ve body zorunlu" });
+  const { data, error } = await supabase
+    .from("templates").insert({ title, body, meta_name: meta_name || null }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+app.delete("/api/templates/:id", async (req, res) => {
+  const { error } = await supabase.from("templates").delete().eq("id", req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
+
 app.get("/api/media", async (_req, res) => {
   const { data } = await supabase.from("media").select("*").order("created_at");
   res.json(data || []);
 });
+
+app.post("/api/media", async (req, res) => {
+  const { name, type, storage_url } = req.body;
+  if (!name || !type || !storage_url) return res.status(400).json({ error: "name, type ve storage_url zorunlu" });
+  const { data, error } = await supabase
+    .from("media").insert({ name, type, storage_url }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
+});
+
+app.delete("/api/media/:id", async (req, res) => {
+  const { error } = await supabase.from("media").delete().eq("id", req.params.id);
+  if (error) return res.status(500).json({ error: error.message });
+  res.json({ ok: true });
+});
+
 
 // Raporlama metrikleri
 app.get("/api/reports", async (req, res) => {

@@ -51,22 +51,6 @@ const STAGES = {
   randevu: { label: "Randevu", color: "#f59e0b" },
   kayit:   { label: "Kayıt",   color: "#22c55e" },
 };
-const TEMPLATES = [
-  { t: "Karşılama", m: "Merhaba 👋 Topkapı Mesleki ve Teknik Anadolu Lisesi'ne hoş geldiniz. Hangi bölüm ve sınıf düzeyi için bilgi almak istersiniz?" },
-  { t: "Bölümler", m: "Bölümlerimiz: Otomotiv, Makine, Mekatronik, Elektrik-Elektronik, Kimya, Biyomedikal ve İnşaat. Hangisine ilgi duyuyorsunuz?" },
-  { t: "Ücret bilgisi", m: "Ücret ve size özel burs oranımız öğrencinin başarı durumuna göre belirleniyor. Kısa bir görüşme için uygun olduğunuz gün/saati paylaşır mısınız?" },
-  { t: "Servis", m: "Servis güzergahlarımız geniş bir bölgeyi kapsıyor. Adresinizi (mahalle/ilçe) paylaşırsanız en yakın güzergahı iletelim." },
-  { t: "Randevu daveti", m: "Sizi kampüsümüzde ağırlamak isteriz 🏫 Atölyelerimizi gezmek için bu hafta hangi gün uygun olur?" },
-  { t: "Belgeler", m: "Kayıt için: öğrenci nüfus cüzdanı fotokopisi, 2 vesikalık, önceki karne/diploma ve veli kimlik fotokopisi gerekiyor 📄" },
-];
-const MEDIA = [
-  { name: "Atölye Tanıtım", n: "image" },
-  { name: "Bölümler Broşürü", n: "file" },
-  { name: "Okul Tanıtım Videosu", n: "video" },
-  { name: "Otomotiv Atölyesi", n: "image" },
-  { name: "Ücret & Burs Tablosu", n: "file" },
-  { name: "Mezun Başarıları", n: "image" },
-];
 
 // ===================== MOCK =====================
 const NAMES = ["Ayşe Yıldız","Murat Demir","Selin Kaya","Hakan Şahin","Derya Öztürk","Emre Arslan","Gül Çelik","Okan Doğan","Pınar Aydın","Tolga Koç","Sevda Aksoy","Barış Kurt"];
@@ -483,6 +467,38 @@ function ChatView({ convo, onSend, update, onBack, isMobile }) {
   const [panel, setPanel] = useState(null); // templates | media | ai | info
   const [busy, setBusy] = useState(false);
   const [draftText, setDraftText] = useState("");
+  const [tplList, setTplList] = useState([]);
+  const [mediaList, setMediaList] = useState([]);
+  const [newTpl, setNewTpl] = useState({ title:"", body:"" });
+  const [newMedia, setNewMedia] = useState({ name:"", type:"image", storage_url:"" });
+  useEffect(() => {
+    api.templates().then(setTplList).catch(console.error);
+    api.media().then(setMediaList).catch(console.error);
+  }, []);
+  async function addTemplate() {
+    if (!newTpl.title.trim() || !newTpl.body.trim()) return;
+    try {
+      const created = await api.createTemplate(newTpl);
+      setTplList(prev => [...prev, created]);
+      setNewTpl({ title:"", body:"" });
+    } catch(e) { console.error("Şablon ekleme hatası:", e); }
+  }
+  async function removeTemplate(id) {
+    try { await api.deleteTemplate(id); setTplList(prev => prev.filter(t=>t.id!==id)); }
+    catch(e) { console.error("Şablon silme hatası:", e); }
+  }
+  async function addMedia() {
+    if (!newMedia.name.trim() || !newMedia.storage_url.trim()) return;
+    try {
+      const created = await api.createMedia(newMedia);
+      setMediaList(prev => [...prev, created]);
+      setNewMedia({ name:"", type:"image", storage_url:"" });
+    } catch(e) { console.error("Medya ekleme hatası:", e); }
+  }
+  async function removeMedia(id) {
+    try { await api.deleteMedia(id); setMediaList(prev => prev.filter(m=>m.id!==id)); }
+    catch(e) { console.error("Medya silme hatası:", e); }
+  }
   useEffect(() => { setDraftText(convo.aiDraft || ""); }, [convo.aiDraft]);
   const endRef = useRef(null);
   useEffect(() => { if (endRef.current) endRef.current.scrollIntoView({ behavior:"smooth" }); }, [convo.msgs.length]);
@@ -716,21 +732,42 @@ function ChatView({ convo, onSend, update, onBack, isMobile }) {
       {panel==="templates" && (
         <div style={S.quickPanel}>
           <div style={S.quickHead}><span>Hazır Şablonlar</span><button onClick={()=>setPanel(null)} style={S.xBtn}><I n="x" size={15}/></button></div>
-          <div style={S.quickGrid}>{TEMPLATES.map((tp)=>(
-            <button key={tp.t} style={S.tplBtn} onClick={()=>{onSend(tp.m);setPanel(null);}}>
-              <b style={{ fontSize:12, color:gold }}>{tp.t}</b>
-              <span style={{ fontSize:11, color:"#94a3b8", display:"block", marginTop:3, lineHeight:1.4 }}>{tp.m.slice(0,70)}…</span>
-            </button>))}</div>
+          <div style={S.quickGrid}>{tplList.map((tp)=>(
+            <div key={tp.id} style={{ position:"relative" }}>
+              <button style={S.tplBtn} onClick={()=>{onSend(tp.body);setPanel(null);}}>
+                <b style={{ fontSize:12, color:gold }}>{tp.title}</b>
+                <span style={{ fontSize:11, color:"#94a3b8", display:"block", marginTop:3, lineHeight:1.4 }}>{tp.body.slice(0,70)}…</span>
+              </button>
+              <button onClick={()=>removeTemplate(tp.id)} title="Sil" style={{ position:"absolute", top:4, right:4, background:"none", border:"none", color:"#64748b", cursor:"pointer" }}><I n="x" size={13}/></button>
+            </div>))}</div>
+          <div style={{ display:"flex", flexDirection:"column", gap:6, marginTop:10, padding:"10px", borderTop:"1px solid #1e293b" }}>
+            <input value={newTpl.title} onChange={(e)=>setNewTpl({...newTpl, title:e.target.value})} placeholder="Başlık" style={S.msgInput}/>
+            <textarea value={newTpl.body} onChange={(e)=>setNewTpl({...newTpl, body:e.target.value})} placeholder="Mesaj içeriği" rows={2} style={{ ...S.msgInput, resize:"vertical" }}/>
+            <button onClick={addTemplate} style={S.sendBtn}>+ Şablon Ekle</button>
+          </div>
         </div>
       )}
       {panel==="media" && (
         <div style={S.quickPanel}>
           <div style={S.quickHead}><span>Medya Kütüphanesi</span><button onClick={()=>setPanel(null)} style={S.xBtn}><I n="x" size={15}/></button></div>
-          <div style={S.mediaGrid}>{MEDIA.map((md)=>(
-            <button key={md.name} style={S.mediaBtn} onClick={()=>{onSend(`📎 ${md.name} gönderildi`);setPanel(null);}}>
-              <I n={md.n} size={20} color={gold}/>
-              <span style={{ fontSize:10.5, marginTop:6, textAlign:"center", lineHeight:1.3, color:"#e2e8f0" }}>{md.name}</span>
-            </button>))}</div>
+          <div style={S.mediaGrid}>{mediaList.map((md)=>(
+            <div key={md.id} style={{ position:"relative" }}>
+              <button style={S.mediaBtn} onClick={()=>{onSend(md.storage_url || `📎 ${md.name} gönderildi`);setPanel(null);}}>
+                <I n={md.type==="video"?"video":md.type==="document"?"file":"image"} size={20} color={gold}/>
+                <span style={{ fontSize:10.5, marginTop:6, textAlign:"center", lineHeight:1.3, color:"#e2e8f0" }}>{md.name}</span>
+              </button>
+              <button onClick={()=>removeMedia(md.id)} title="Sil" style={{ position:"absolute", top:4, right:4, background:"none", border:"none", color:"#64748b", cursor:"pointer" }}><I n="x" size={13}/></button>
+            </div>))}</div>
+          <div style={{ display:"flex", flexDirection:"column", gap:6, marginTop:10, padding:"10px", borderTop:"1px solid #1e293b" }}>
+            <input value={newMedia.name} onChange={(e)=>setNewMedia({...newMedia, name:e.target.value})} placeholder="Ad" style={S.msgInput}/>
+            <select value={newMedia.type} onChange={(e)=>setNewMedia({...newMedia, type:e.target.value})} style={S.msgInput}>
+              <option value="image">Görsel</option>
+              <option value="video">Video</option>
+              <option value="document">Belge</option>
+            </select>
+            <input value={newMedia.storage_url} onChange={(e)=>setNewMedia({...newMedia, storage_url:e.target.value})} placeholder="Dosya/Link URL" style={S.msgInput}/>
+            <button onClick={addMedia} style={S.sendBtn}>+ Medya Ekle</button>
+          </div>
         </div>
       )}
 

@@ -27,7 +27,11 @@ export const api = {
   pendingAppointments: () => j(`/api/appointments/pending`),
   confirmAppointment: (id) => j(`/api/appointments/${id}/confirm`, { method: "PATCH" }),
   templates: () => j(`/api/templates`),
+  createTemplate: (data) => j(`/api/templates`, { method: "POST", body: data }),
+  deleteTemplate: (id) => j(`/api/templates/${id}`, { method: "DELETE" }),
   media: () => j(`/api/media`),
+  createMedia: (data) => j(`/api/media`, { method: "POST", body: data }),
+  deleteMedia: (id) => j(`/api/media/${id}`, { method: "DELETE" }),
   reports: (period) => j(`/api/reports?period=${period}`),
   exportLeadsUrl: ({ from, to, period }) => {
     const q = new URLSearchParams();
