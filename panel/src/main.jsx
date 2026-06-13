@@ -39,7 +39,7 @@ function I({ n, size = 16, color }) {
 // ===================== SABİTLER =====================
 const gold = "#c8a14a", green = "#25D366";
 const CAMPUSES = ["İkitelli OSB", "İstanbul OSB", "Esenyurt", "Kıraç", "Çorlu"];
-const SOURCES = ["WhatsApp Reklam", "Web Sitesi Butonu", "Instagram", "Tavsiye"];
+const SOURCES = ["WhatsApp", "WhatsApp Reklam", "Web Sitesi Butonu", "Instagram", "Tavsiye"];
 const OPERATORS = ["Ayşe K.", "Mehmet T.", "Zeynep A.", "Burak Y."];
 const DEPARTMENTS = ["Otomotiv","Makine","Mekatronik","Elektrik-Elektronik","Kimya","Biyomedikal","İnşaat"];
 const GRADES = ["9. Sınıf","10. Sınıf","11. Sınıf","12. Sınıf"];
@@ -666,6 +666,13 @@ function ChatView({ convo, onSend, update, onBack, isMobile }) {
               <select value={convo.campus} onChange={(e)=>{ update(convo.id,{campus:e.target.value}); api.updateLead(convo.id,{campus:e.target.value}).catch(console.error); }} style={S.select}>
                 <option value="">Seçiniz…</option>
                 {CAMPUSES.map(c=><option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div style={{ flex:1, minWidth:150 }}>
+              <label style={S.fieldLbl}>Mecra</label>
+              <select value={convo.source || ""} onChange={(e)=>{ update(convo.id,{source:e.target.value}); api.updateLead(convo.id,{source:e.target.value}).catch(console.error); }} style={S.select}>
+                <option value="">Seçiniz…</option>
+                {SOURCES.map(s=><option key={s} value={s}>{s}</option>)}
               </select>
             </div>
           </div>

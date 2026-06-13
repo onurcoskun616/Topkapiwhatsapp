@@ -115,7 +115,7 @@ app.post("/webhook", async (req, res) => {
     if (!lead) {
       const { data: created } = await supabase
         .from("leads")
-        .insert({ wa_id: msg.waId, name: msg.name, phone: msg.waId, stage: "yeni" })
+        .insert({ wa_id: msg.waId, name: msg.name, phone: msg.waId, stage: "yeni", source: "WhatsApp" })
         .select().single();
       lead = created;
     }
