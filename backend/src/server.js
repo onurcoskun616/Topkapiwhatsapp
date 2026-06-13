@@ -5,7 +5,7 @@ import express from "express";
 import cors from "cors";
 import crypto from "crypto";
 import { supabase } from "./supabase.js";
-import { sendText, parseIncoming, getMediaInfo, downloadMedia } from "./whatsapp.js";
+import { sendText, parseIncoming, getMediaInfo, downloadMedia, sendTypingIndicator } from "./whatsapp.js";
 import { analyzeConversation, generateReply, generateFollowUp, generateAppointmentReminder } from "./openai.js";
 import { matchFaq } from "./faq.js";
 import ExcelJS from "exceljs";
@@ -127,6 +127,11 @@ app.post("/webhook", async (req, res) => {
 
     // 3) AI aktifse otomatik analiz + (mode'a göre) yanıt
     if (lead.ai_enabled) {
+      // Veliye "yazıyor..." göstergesi göster (yanıt hazırlanırken)
+      if (msg.waMessageId) {
+        try { await sendTypingIndicator(msg.waMessageId); } catch (e) { console.error("Yazıyor göstergesi hatası:", e.message); }
+      }
+
       const { data: msgs } = await supabase
         .from("messages").select("*").eq("lead_id", lead.id).order("created_at");
 
