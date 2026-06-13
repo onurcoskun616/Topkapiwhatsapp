@@ -5,7 +5,7 @@ import express from "express";
 import cors from "cors";
 import crypto from "crypto";
 import { supabase } from "./supabase.js";
-import { sendText, parseIncoming, getMediaInfo, downloadMedia, sendTypingIndicator } from "./whatsapp.js";
+import { sendText, sendMedia, parseIncoming, getMediaInfo, downloadMedia, sendTypingIndicator } from "./whatsapp.js";
 import { analyzeConversation, generateReply, generateFollowUp, generateAppointmentReminder } from "./openai.js";
 import { matchFaq } from "./faq.js";
 import ExcelJS from "exceljs";
@@ -258,13 +258,21 @@ app.patch("/api/leads/:id", async (req, res) => {
 
 // Veliye mesaj gönder (operatör veya onaylı taslak)
 app.post("/api/leads/:id/send", async (req, res) => {
-  const { text, byAI } = req.body;
+  const { text, byAI, media } = req.body; // media: { type: image|video|document, url, name }
   const { data: lead } = await supabase.from("leads").select("wa_id").eq("id", req.params.id).single();
   try {
-    await sendText(lead.wa_id, text);
-    await supabase.from("messages").insert({
-      lead_id: req.params.id, direction: "out", body: text, by_ai: !!byAI,
-    });
+    if (media) {
+      await sendMedia(lead.wa_id, media.type, media.url, media.name);
+      await supabase.from("messages").insert({
+        lead_id: req.params.id, direction: "out", body: media.name || "", by_ai: !!byAI,
+        type: media.type, media_url: media.url,
+      });
+    } else {
+      await sendText(lead.wa_id, text);
+      await supabase.from("messages").insert({
+        lead_id: req.params.id, direction: "out", body: text, by_ai: !!byAI,
+      });
+    }
     if (byAI) await supabase.from("leads").update({ ai_draft: null }).eq("id", req.params.id);
     res.json({ ok: true });
   } catch (e) {

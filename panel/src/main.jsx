@@ -385,6 +385,12 @@ function Inboxer({ convos, update, setConvos, activeId, setActiveId, isMobile })
     try { await api.send(activeId, text); } catch(e) { console.error("Gönderim hatası:", e); }
   }
 
+  async function sendMediaItem(md) {
+    update(activeId, c => ({ msgs:[...c.msgs,{from:"out",text:md.name,type:md.type,mediaId:md.storage_url,time:new Date()}], unread:0 }));
+    try { await api.sendMedia(activeId, { type: md.type, url: md.storage_url, name: md.name }); }
+    catch(e) { console.error("Medya gönderim hatası:", e); }
+  }
+
   async function open(id) {
     setActiveId(id);
     update(id, { unread:0 });
@@ -434,27 +440,28 @@ function Inboxer({ convos, update, setConvos, activeId, setActiveId, isMobile })
         </div>
       )}
       {showChat && (active
-        ? <ChatView convo={active} onSend={send} update={update} onBack={()=>setActiveId(null)} isMobile={isMobile}/>
+        ? <ChatView convo={active} onSend={send} onSendMedia={sendMediaItem} update={update} onBack={()=>setActiveId(null)} isMobile={isMobile}/>
         : <div style={S.noChat}><I n="msg" size={40} color="#1e3a5f"/><p style={{ color:"#475569", fontSize:14 }}>Bir konuşma seçin</p></div>)}
     </div>
   );
 }
 
 function MsgContent({ m }) {
-  if (m.type === "image" && m.mediaId) {
+  const url = m.mediaId ? (m.mediaId.startsWith("http") ? m.mediaId : api.mediaProxyUrl(m.mediaId)) : null;
+  if (m.type === "image" && url) {
     return <div>
-      <img src={api.mediaProxyUrl(m.mediaId)} alt="" style={{ maxWidth:240, borderRadius:8, display:"block" }}/>
+      <img src={url} alt="" style={{ maxWidth:240, borderRadius:8, display:"block" }}/>
       {m.text && <div style={{ marginTop:6 }}>{m.text}</div>}
     </div>;
   }
-  if (m.type === "video" && m.mediaId) {
+  if (m.type === "video" && url) {
     return <div>
-      <video src={api.mediaProxyUrl(m.mediaId)} controls style={{ maxWidth:240, borderRadius:8, display:"block" }}/>
+      <video src={url} controls style={{ maxWidth:240, borderRadius:8, display:"block" }}/>
       {m.text && <div style={{ marginTop:6 }}>{m.text}</div>}
     </div>;
   }
-  if (m.type === "document" && m.mediaId) {
-    return <a href={api.mediaProxyUrl(m.mediaId)} target="_blank" rel="noreferrer"
+  if (m.type === "document" && url) {
+    return <a href={url} target="_blank" rel="noreferrer"
       style={{ display:"flex", alignItems:"center", gap:8, color:"inherit", textDecoration:"none" }}>
       <I n="file" size={18}/> {m.text || "Belge"}
     </a>;
@@ -462,7 +469,7 @@ function MsgContent({ m }) {
   return m.text;
 }
 
-function ChatView({ convo, onSend, update, onBack, isMobile }) {
+function ChatView({ convo, onSend, onSendMedia, update, onBack, isMobile }) {
   const [text, setText] = useState("");
   const [panel, setPanel] = useState(null); // templates | media | ai | info
   const [busy, setBusy] = useState(false);
@@ -774,7 +781,7 @@ function ChatView({ convo, onSend, update, onBack, isMobile }) {
           <div style={S.quickHead}><span>Medya Kütüphanesi</span><button onClick={()=>setPanel(null)} style={S.xBtn}><I n="x" size={15}/></button></div>
           <div style={S.mediaGrid}>{mediaList.map((md)=>(
             <div key={md.id} style={{ position:"relative" }}>
-              <button style={S.mediaBtn} onClick={()=>{onSend(md.storage_url || `📎 ${md.name} gönderildi`);setPanel(null);}}>
+              <button style={S.mediaBtn} onClick={()=>{onSendMedia(md);setPanel(null);}}>
                 <I n={md.type==="video"?"video":md.type==="document"?"file":"image"} size={20} color={gold}/>
                 <span style={{ fontSize:10.5, marginTop:6, textAlign:"center", lineHeight:1.3, color:"#e2e8f0" }}>{md.name}</span>
               </button>

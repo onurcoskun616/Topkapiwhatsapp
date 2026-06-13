@@ -21,6 +21,7 @@ export const api = {
   getLead: (id) => j(`/api/leads/${id}`),
   updateLead: (id, patch) => j(`/api/leads/${id}`, { method: "PATCH", body: patch }),
   send: (id, text, byAI = false) => j(`/api/leads/${id}/send`, { method: "POST", body: { text, byAI } }),
+  sendMedia: (id, media) => j(`/api/leads/${id}/send`, { method: "POST", body: { media } }),
   analyze: (id) => j(`/api/leads/${id}/analyze`, { method: "POST" }),
   reply: (id) => j(`/api/leads/${id}/reply`, { method: "POST" }),
   setAppointment: (id, scheduled_at) => j(`/api/leads/${id}/appointment`, { method: "PUT", body: { scheduled_at } }),

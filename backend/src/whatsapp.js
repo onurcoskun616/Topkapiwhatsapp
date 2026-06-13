@@ -22,6 +22,26 @@ export async function sendText(toWaId, text) {
   return res.json();
 }
 
+// Veliye medya (görsel/video/belge) linkini gönder
+export async function sendMedia(toWaId, type, link, caption) {
+  const body = {
+    messaging_product: "whatsapp",
+    to: toWaId,
+    type,
+    [type]: { link, ...(caption ? { caption } : {}) },
+  };
+  const res = await fetch(`${API}/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`WhatsApp medya gönderim hatası: ${res.status} ${await res.text()}`);
+  return res.json();
+}
+
 // Onaylı şablon mesajı gönder (24 saat penceresi DIŞINDA tek yol budur)
 export async function sendTemplate(toWaId, templateName, langCode = "tr") {
   const res = await fetch(`${API}/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`, {
