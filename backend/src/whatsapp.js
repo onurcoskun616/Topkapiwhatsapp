@@ -79,6 +79,7 @@ export function parseIncoming(body) {
       text: msg.text?.body || media?.caption || "",
       mediaId: media?.id || null,
       timestamp: msg.timestamp,
+      referral: msg.referral || null,           // "click to WhatsApp" reklamından geldiyse reklam/source bilgisi
     };
   } catch {
     return null;

@@ -23,6 +23,16 @@ app.use(cors({
   credentials: true,
 }));
 
+// "Click to WhatsApp" reklamından geldiyse referral bilgisine göre mecrayı belirle
+function detectSource(referral) {
+  if (!referral) return "WhatsApp";
+  const url = (referral.source_url || "").toLowerCase();
+  if (url.includes("instagram.com")) return "Instagram";
+  if (url.includes("facebook.com") || url.includes("fb.me")) return "WhatsApp Reklam";
+  if (referral.source_type === "ad") return "WhatsApp Reklam";
+  return "WhatsApp";
+}
+
 // Analiz sonucunu lead'e ve gerekirse randevu tablosuna işle
 async function applyAnalysis(lead, analysis) {
   await supabase.from("leads").update({
@@ -115,7 +125,7 @@ app.post("/webhook", async (req, res) => {
     if (!lead) {
       const { data: created } = await supabase
         .from("leads")
-        .insert({ wa_id: msg.waId, name: msg.name, phone: msg.waId, stage: "yeni", source: "WhatsApp" })
+        .insert({ wa_id: msg.waId, name: msg.name, phone: msg.waId, stage: "yeni", source: detectSource(msg.referral) })
         .select().single();
       lead = created;
     }
