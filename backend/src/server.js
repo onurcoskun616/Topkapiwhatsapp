@@ -500,13 +500,19 @@ async function checkFollowUps() {
     if (lastMsg.follow_up_sent) continue;
 
     try {
+      // Önce mevcut son mesajı işaretle — yeni mesaj eklenmesi başarısız olsa
+      // bile bu mesaj bir daha hatırlatma tetiklemesin.
+      const { error: flagErr } = await supabase
+        .from("messages").update({ follow_up_sent: true }).eq("id", lastMsg.id);
+      if (flagErr) { console.error("follow_up_sent işaretleme hatası:", lead.id, flagErr.message); continue; }
+
       const followUp = await generateFollowUp(msgs);
 
       await sendText(lead.wa_id, followUp);
-      await supabase.from("messages").insert({
+      const { error: insErr } = await supabase.from("messages").insert({
         lead_id: lead.id, direction: "out", body: followUp, by_ai: true, follow_up_sent: true,
       });
-      await supabase.from("messages").update({ follow_up_sent: true }).eq("id", lastMsg.id);
+      if (insErr) console.error("Hatırlatma mesajı kayıt hatası:", lead.id, insErr.message);
       await supabase.from("leads").update({ last_message_at: new Date().toISOString() }).eq("id", lead.id);
     } catch (e) {
       console.error("Hatırlatma gönderme hatası:", lead.id, e.message);
