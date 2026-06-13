@@ -5,7 +5,7 @@ import express from "express";
 import cors from "cors";
 import { supabase } from "./supabase.js";
 import { sendText, parseIncoming, getMediaInfo, downloadMedia } from "./whatsapp.js";
-import { analyzeConversation, generateReply, generateFollowUp } from "./openai.js";
+import { analyzeConversation, generateReply, generateFollowUp, generateAppointmentReminder } from "./openai.js";
 import { matchFaq } from "./faq.js";
 import ExcelJS from "exceljs";
 
@@ -546,10 +546,19 @@ async function checkAppointmentReminders() {
     const when = new Date(appt.scheduled_at);
     const saat = when.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Istanbul" });
     const adSoyad = lead.parent_name || lead.name || "";
-    const text =
+    const fallbackText =
       `Sayın ${adSoyad}, yarın saat ${saat} için ${lead.campus || "kampüsümüzde"} ` +
       `planladığımız görüşme/ziyaret randevunuzu hatırlatmak isteriz. ` +
       `Bu saat sizin için hâlâ uygun mu?`;
+
+    let text = fallbackText;
+    try {
+      const { data: msgs } = await supabase
+        .from("messages").select("*").eq("lead_id", appt.lead_id).order("created_at");
+      text = await generateAppointmentReminder(msgs || [], { adSoyad, campus: lead.campus, saat });
+    } catch (e) {
+      console.error("AI hatırlatma metni üretme hatası, şablon kullanılıyor:", appt.id, e.message);
+    }
 
     try {
       await sendText(lead.wa_id, text);

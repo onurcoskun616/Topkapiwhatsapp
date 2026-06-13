@@ -87,6 +87,34 @@ export async function generateFollowUp(messages) {
   return completion.choices[0].message.content;
 }
 
+// 1.6) RANDEVU HATIRLATMASI — yarınki randevu için, görüşme geçmişine uygun
+// samimi ve kısa bir hatırlatma mesajı üret (klişe/şablon tekrarından kaçın)
+export async function generateAppointmentReminder(messages, { adSoyad, campus, saat }) {
+  const history = messages.map((m) => ({
+    role: m.direction === "in" ? "user" : "assistant",
+    content: m.body,
+  }));
+  const completion = await getClient().chat.completions.create({
+    model: MODEL,
+    temperature: 0.7,
+    messages: [
+      { role: "system", content: SYSTEM_PROMPT },
+      ...history,
+      {
+        role: "system",
+        content:
+          `Veli ${adSoyad ? `(${adSoyad}) ` : ""}ile yarın saat ${saat} için ` +
+          `${campus || "kampüsümüzde"} bir görüşme/ziyaret randevusu planlandı. ` +
+          "Veliye bu randevuyu hatırlatan, sıcak ve kısa (1-2 cümle) bir mesaj " +
+          "yaz; bu saatin hâlâ uygun olup olmadığını sor. Önceki mesajlardakiyle " +
+          "aynı kalıbı/cümleleri tekrarlama, her seferinde farklı bir ifade kullan. " +
+          "Sadece veliye gönderilecek mesajı yaz.",
+      },
+    ],
+  });
+  return completion.choices[0].message.content;
+}
+
 // 2) YANIT — veliye okul danışmanı kimliğiyle cevap üret
 export async function generateReply(messages) {
   const history = messages.map((m) => ({
