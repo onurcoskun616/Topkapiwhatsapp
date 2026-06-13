@@ -25,12 +25,12 @@ app.use(cors({
 
 // "Click to WhatsApp" reklamından geldiyse referral bilgisine göre mecrayı belirle
 function detectSource(referral) {
-  if (!referral) return "WhatsApp";
+  if (!referral) return "Web Sitesi Butonu";
   const url = (referral.source_url || "").toLowerCase();
   if (url.includes("instagram.com")) return "Instagram";
   if (url.includes("facebook.com") || url.includes("fb.me")) return "WhatsApp Reklam";
   if (referral.source_type === "ad") return "WhatsApp Reklam";
-  return "WhatsApp";
+  return "Web Sitesi Butonu";
 }
 
 // Analiz sonucunu lead'e ve gerekirse randevu tablosuna işle
