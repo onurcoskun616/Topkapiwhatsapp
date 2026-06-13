@@ -541,7 +541,11 @@ function ChatView({ convo, onSend, update, onBack, isMobile }) {
         <div style={{ flex:1, minWidth:0 }}><b style={{ fontSize:14, color:"#fff" }}>{convo.name}</b>
           <div style={{ fontSize:11, color:"#64748b" }}>{convo.phone} · {convo.campus}{convo.department?` · ${convo.department}`:""}{convo.grade?` · ${convo.grade}`:""}</div></div>
         {/* LLM aç/kapa */}
-        <button onClick={()=>update(convo.id,{ aiEnabled:!convo.aiEnabled })}
+        <button onClick={()=>{
+            const next = !convo.aiEnabled;
+            update(convo.id,{ aiEnabled:next });
+            api.updateLead(convo.id,{ ai_enabled:next }).catch(console.error);
+          }}
           style={{ ...S.aiBtn, ...(convo.aiEnabled?{background:gold,color:"#0a1020",borderColor:gold}:{}) }} title="LLM otomatik yanıt">
           <I n="power" size={14}/> <span>{convo.aiEnabled?"Açık":"Kapalı"}</span>
         </button>
