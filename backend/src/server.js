@@ -50,7 +50,10 @@ async function applyAnalysis(lead, analysis) {
   }).eq("id", lead.id);
 
   if (analysis.appointment_date) {
-    const when = new Date(analysis.appointment_date);
+    // LLM saati Türkiye yerel saati olarak veriyor (TZ belirtmeden) — UTC olarak
+    // yorumlanmaması için +03:00 ofsetini ekleyip doğru UTC anına çeviriyoruz.
+    const raw = analysis.appointment_date.replace(/Z$/, "").replace(/([+-]\d{2}:\d{2})$/, "");
+    const when = new Date(`${raw}+03:00`);
     if (!isNaN(when.getTime())) {
       const { data: existing } = await supabase
         .from("appointments").select("id").eq("lead_id", lead.id)
