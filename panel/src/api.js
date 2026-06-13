@@ -31,6 +31,15 @@ export const api = {
   deleteTemplate: (id) => j(`/api/templates/${id}`, { method: "DELETE" }),
   media: () => j(`/api/media`),
   createMedia: (data) => j(`/api/media`, { method: "POST", body: data }),
+  uploadMedia: async ({ file, name, type }) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("name", name);
+    fd.append("type", type);
+    const res = await fetch(`${API}/api/media/upload`, { method: "POST", body: fd });
+    if (!res.ok) throw new Error(`${res.status} ${await res.text()}`);
+    return res.json();
+  },
   deleteMedia: (id) => j(`/api/media/${id}`, { method: "DELETE" }),
   reports: (period) => j(`/api/reports?period=${period}`),
   exportLeadsUrl: ({ from, to, period }) => {

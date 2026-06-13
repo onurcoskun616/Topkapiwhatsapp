@@ -9,6 +9,10 @@ import { sendText, parseIncoming, getMediaInfo, downloadMedia, sendTypingIndicat
 import { analyzeConversation, generateReply, generateFollowUp, generateAppointmentReminder } from "./openai.js";
 import { matchFaq } from "./faq.js";
 import ExcelJS from "exceljs";
+import multer from "multer";
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
+const MEDIA_BUCKET = "media";
 
 const app = express();
 app.use(express.json({
@@ -340,6 +344,27 @@ app.delete("/api/templates/:id", async (req, res) => {
 app.get("/api/media", async (_req, res) => {
   const { data } = await supabase.from("media").select("*").order("created_at");
   res.json(data || []);
+});
+
+app.post("/api/media/upload", upload.single("file"), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "Dosya bulunamadı" });
+  const { name, type } = req.body;
+  if (!name || !type) return res.status(400).json({ error: "name ve type zorunlu" });
+
+  const ext = req.file.originalname.includes(".") ? req.file.originalname.split(".").pop() : "";
+  const path = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext ? "." + ext : ""}`;
+
+  const { error: upErr } = await supabase.storage
+    .from(MEDIA_BUCKET)
+    .upload(path, req.file.buffer, { contentType: req.file.mimetype });
+  if (upErr) return res.status(500).json({ error: upErr.message });
+
+  const { data: pub } = supabase.storage.from(MEDIA_BUCKET).getPublicUrl(path);
+
+  const { data, error } = await supabase
+    .from("media").insert({ name, type, storage_url: pub.publicUrl }).select().single();
+  if (error) return res.status(500).json({ error: error.message });
+  res.json(data);
 });
 
 app.post("/api/media", async (req, res) => {

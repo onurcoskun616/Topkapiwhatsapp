@@ -471,6 +471,8 @@ function ChatView({ convo, onSend, update, onBack, isMobile }) {
   const [mediaList, setMediaList] = useState([]);
   const [newTpl, setNewTpl] = useState({ title:"", body:"" });
   const [newMedia, setNewMedia] = useState({ name:"", type:"image", storage_url:"" });
+  const [dragOver, setDragOver] = useState(false);
+  const [uploading, setUploading] = useState(false);
   useEffect(() => {
     api.templates().then(setTplList).catch(console.error);
     api.media().then(setMediaList).catch(console.error);
@@ -494,6 +496,19 @@ function ChatView({ convo, onSend, update, onBack, isMobile }) {
       setMediaList(prev => [...prev, created]);
       setNewMedia({ name:"", type:"image", storage_url:"" });
     } catch(e) { console.error("Medya ekleme hatası:", e); }
+  }
+  function guessType(file) {
+    if (file.type.startsWith("image/")) return "image";
+    if (file.type.startsWith("video/")) return "video";
+    return "document";
+  }
+  async function uploadFile(file) {
+    setUploading(true);
+    try {
+      const created = await api.uploadMedia({ file, name: file.name, type: guessType(file) });
+      setMediaList(prev => [...prev, created]);
+    } catch(e) { console.error("Medya yükleme hatası:", e); }
+    setUploading(false);
   }
   async function removeMedia(id) {
     try { await api.deleteMedia(id); setMediaList(prev => prev.filter(m=>m.id!==id)); }
@@ -758,7 +773,20 @@ function ChatView({ convo, onSend, update, onBack, isMobile }) {
               </button>
               <button onClick={()=>removeMedia(md.id)} title="Sil" style={{ position:"absolute", top:4, right:4, background:"none", border:"none", color:"#64748b", cursor:"pointer" }}><I n="x" size={13}/></button>
             </div>))}</div>
+          <div
+            onDragOver={(e)=>{e.preventDefault();setDragOver(true);}}
+            onDragLeave={()=>setDragOver(false)}
+            onDrop={(e)=>{e.preventDefault();setDragOver(false);const f=e.dataTransfer.files?.[0];if(f)uploadFile(f);}}
+            style={{ marginTop:10, padding:"16px", border:`2px dashed ${dragOver?gold:"#334155"}`, borderRadius:8, textAlign:"center", color:"#94a3b8", fontSize:12, background:dragOver?"#13203a":"transparent" }}
+          >
+            {uploading ? "Yükleniyor…" : "Dosyayı buraya sürükleyin veya"}{" "}
+            <label style={{ color:gold, cursor:"pointer", textDecoration:"underline" }}>
+              bilgisayardan seç
+              <input type="file" style={{ display:"none" }} onChange={(e)=>{const f=e.target.files?.[0];if(f)uploadFile(f);e.target.value="";}}/>
+            </label>
+          </div>
           <div style={{ display:"flex", flexDirection:"column", gap:6, marginTop:10, padding:"10px", borderTop:"1px solid #1e293b" }}>
+            <span style={{ fontSize:11, color:"#64748b" }}>veya link ile ekle:</span>
             <input value={newMedia.name} onChange={(e)=>setNewMedia({...newMedia, name:e.target.value})} placeholder="Ad" style={S.msgInput}/>
             <select value={newMedia.type} onChange={(e)=>setNewMedia({...newMedia, type:e.target.value})} style={S.msgInput}>
               <option value="image">Görsel</option>
