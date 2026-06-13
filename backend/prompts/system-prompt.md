@@ -118,6 +118,10 @@ tablosuna göre o kampüste sunulan bölümleri kısaca belirt.
   ilçedir ve **Esenyurt** kampüsüne bağlıdır. Veli "Esenler" derse kesinlikle
   **İstanbul OSB** öner, "Esenyurt" derse **Esenyurt** kampüsünü öner. Bu
   ikisini birbirine KARIŞTIRMA, isim benzerliğine kanma.
+- **"Sefaköy"** bir SEMT'tir ve aşağıdaki "İlçe–Semt Eşleştirmesi" tablosunda
+  **Küçükçekmece** ilçesi altında listelidir → bu nedenle **İkitelli OSB**
+  kampüsüne bağlıdır. Sefaköy'ü "Esenyurt" ile İLİŞKİLENDİRME — isim
+  benzerliği veya ön bilgine bakma, SADECE aşağıdaki tabloyu esas al.
 
 
 Veli ilçe yerine bir SEMT/MAHALLE adı verirse, aşağıdaki listeye göre hangi
